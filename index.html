@@ -3,7 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#2457F5">
+<meta name="theme-color" content="#F6F7F9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0B0F1A" media="(prefers-color-scheme: dark)">
 <meta name="color-scheme" content="light dark">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -621,6 +622,9 @@ input[type="text"], input[type="number"], select { border: 1px solid var(--line)
 .lifts .ld.up { color: var(--grn); }
 .rlegend span, .mtx .ml { text-transform: none; letter-spacing: 0; font-weight: 500; font-size: 13px; }
 .daybtn .dn { letter-spacing: 0.04em; }
+/* effects layer: take it out of the render tree whenever nothing is playing, so iOS never tints the top edge from it */
+#fx:empty { display: none; }
+html { background: var(--bg); }
 </style>
 </head>
 <body>
