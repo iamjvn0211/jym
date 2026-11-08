@@ -1095,6 +1095,87 @@ html { background: var(--bg); }
         "Keep it relaxed. You can talk the whole time."
       ],
       tip: "A short extra walk is a simple way to burn a bit more without extra strain."
+    },
+    "Doorway pec stretch": {
+      steps: [
+        "Stand in a doorway with your forearm on the frame, elbow level with your shoulder.",
+        "Step through slightly until you feel a stretch across the chest.",
+        "Keep ribs down and shoulder away from your ear. Breathe slowly for 30 seconds, then switch."
+      ],
+      tip: "Do not arch your lower back to get deeper. The stretch belongs in the chest, not the spine.",
+      q: "doorway pec stretch"
+    },
+    "Half-kneeling hip flexor stretch": {
+      steps: [
+        "Kneel on one knee on a soft surface, other foot flat in front.",
+        "Tuck your tailbone under and squeeze the glute of the kneeling leg.",
+        "Shift forward a little until you feel the front of the kneeling hip stretch. Hold 30 seconds, then switch."
+      ],
+      tip: "The pelvic tuck is the point. If your lower back arches, you are not stretching the hip flexor.",
+      q: "half kneeling hip flexor stretch posterior pelvic tilt"
+    },
+    "Wall angels": {
+      steps: [
+        "Stand with your back, head and hips against a wall, feet a short step out.",
+        "Press your lower back gently to the wall and put your arms up in a goalpost shape.",
+        "Slide the arms up and down slowly, keeping wrists and elbows on the wall."
+      ],
+      tip: "If your ribs flare or your lower back leaves the wall, shorten the range. Quality beats height.",
+      q: "wall angels shoulder posture"
+    },
+    "Thoracic extension on a bench": {
+      steps: [
+        "Kneel in front of a bench and rest your elbows on it, hands behind your head or arms overhead.",
+        "Sink your chest toward the floor, letting the upper back arch.",
+        "Come back up slowly and repeat."
+      ],
+      tip: "Move at the upper back. If you feel it in the lower back, keep your ribs pulled down.",
+      q: "thoracic extension bench mobility"
+    },
+    "90/90 hip switches": {
+      steps: [
+        "Sit on the floor with both knees bent at 90 degrees, one leg in front and one to the side.",
+        "Sit tall and rotate both knees over to the other side, using your hands for balance.",
+        "Keep your chest tall as you switch. Repeat slowly."
+      ],
+      tip: "If sitting upright is hard, sit on a folded towel. Do not slump to reach the position.",
+      q: "90 90 hip switches"
+    },
+    "Glute bridge with pelvic tilt": {
+      steps: [
+        "Lie on your back with knees bent and feet flat, hip-width apart.",
+        "Tilt your pelvis so your lower back flattens to the floor, then lift your hips.",
+        "Squeeze the glutes at the top for 2 seconds, lower slowly."
+      ],
+      tip: "Finish with glutes, not with an arched lower back. Ribs stay down.",
+      q: "glute bridge posterior pelvic tilt"
+    },
+    "Prone Y raise": {
+      steps: [
+        "Lie face down with arms forward in a Y shape, thumbs up, forehead off the floor.",
+        "Lift your arms a few centimetres by squeezing the shoulder blades down and together.",
+        "Hold 1 second, lower slowly."
+      ],
+      tip: "Use no weight. Lift from the shoulder blades, not by arching the neck or lower back.",
+      q: "prone Y raise"
+    },
+    "Couch stretch": {
+      steps: [
+        "Kneel with one shin up a wall or couch, knee on a soft surface close to the wall.",
+        "Step the other foot forward and tuck your pelvis under.",
+        "Raise your torso as far as is comfortable and squeeze the back glute. Hold 30 seconds, then switch."
+      ],
+      tip: "Start gently: this is a strong stretch. Keep the tuck and ease off if the knee complains.",
+      q: "couch stretch hip flexor"
+    },
+    "Dead bug": {
+      steps: [
+        "Lie on your back, arms up and knees bent over your hips.",
+        "Press your lower back into the floor and keep it there.",
+        "Slowly lower the opposite arm and leg toward the floor, then return and switch."
+      ],
+      tip: "If your lower back lifts, make the movement smaller. Slow and flat beats big.",
+      q: "dead bug exercise"
     }
   };
   function guideFor(a) { return GUIDE[a.name + '|' + a.detail] || GUIDE[a.name] || null; }
@@ -1157,6 +1238,16 @@ html { background: var(--bg); }
     add(4, 'str', 'Suitcase carry', '3 × 30 s per side', 5, 1);
     add(4, 'car', 'Extra intervals', '4 more rounds of 1 min hard, 1 min easy', 8, 1);
     add(5, 'car', 'Extra walk', '10 more minutes, easy', 10, 1);
+    // Posture stretches: open the chest and shoulders, free the hips, bring the pelvis back to neutral.
+    add(0, 'mob', 'Doorway pec stretch', '2 × 30 s per side, elbow at shoulder height', 4, 1);
+    add(0, 'mob', 'Half-kneeling hip flexor stretch', '2 × 30 s per side, tuck the pelvis under', 4, 1);
+    add(0, 'mob', 'Wall angels', '2 × 8 slow reps, back flat on the wall', 3, 1);
+    add(2, 'mob', 'Thoracic extension on a bench', '2 × 8 slow reps, arms overhead', 3, 1);
+    add(2, 'mob', '90/90 hip switches', '2 × 6 per side, sit tall', 4, 1);
+    add(2, 'mob', 'Glute bridge with pelvic tilt', '2 × 10, squeeze at the top for 2 s', 3, 1);
+    add(4, 'mob', 'Prone Y raise', '2 × 8, thumbs up, squeeze the shoulder blades', 3, 1);
+    add(4, 'mob', 'Couch stretch', '2 × 30 s per side, squeeze the glute', 4, 1);
+    add(4, 'mob', 'Dead bug', '2 × 8 per side, lower back stays on the floor', 4, 1);
     return P;
   }
 
@@ -2656,7 +2747,7 @@ html { background: var(--bg); }
   var cloudFailed = false;
   var saving = false, dirty = false, saveTimer = null;
 
-  function serialize() { return { v: 9, seen: seen, startKg: startKg, startFat: startFat, plan: plan, done: done, logs: logs, recs: recs, level: level, body: bodyKg, weigh: weigh, goalKg: goalKg, goalMonths: goalMonths, nutri: nutriSerialize() }; }
+  function serialize() { return { v: 9, pv: 2, seen: seen, startKg: startKg, startFat: startFat, plan: plan, done: done, logs: logs, recs: recs, level: level, body: bodyKg, weigh: weigh, goalKg: goalKg, goalMonths: goalMonths, nutri: nutriSerialize() }; }
   function apply(data) {
     coreCache = null;
     if (!data || typeof data !== 'object') return;
@@ -2697,6 +2788,12 @@ html { background: var(--bg); }
         plan = saved.concat(defaultPlan().filter(function (a) { return a.bonus && !have[a.id]; }));
       } else {
         plan = saved;
+      }
+      if (!legacy && (data.pv | 0) < 2) {
+        // Plan version 2 added posture stretches. Add any bonus exercise the saved plan does not have yet, once.
+        var have2 = {};
+        plan.forEach(function (a) { have2[a.id] = 1; });
+        plan = plan.concat(defaultPlan().filter(function (a) { return a.bonus && !have2[a.id]; }));
       }
       if (!legacy && (data.v | 0) < 6) {
         // Version 6 switched machine and cable exercises to free weights.
