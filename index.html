@@ -639,6 +639,7 @@ html { background: var(--bg); }
 .spb { position: absolute; right: 100%; top: 18px; margin-right: -4px; white-space: nowrap; padding: 8px 12px; border-radius: 14px; background: #fff; color: #101828; border-bottom: 3px solid #D5DAE3; font: 700 14px/1.1 var(--font-body, system-ui); box-shadow: 0 4px 14px rgba(0, 0, 0, .15); }
 .spb::after { content: ""; position: absolute; right: -7px; top: 50%; margin-top: -7px; border: 7px solid transparent; border-left-color: #fff; border-right: 0; }
 @keyframes spop { 0% { transform: translateY(105%) scale(.8); opacity: 0; } 16% { transform: translateY(-5%) scale(1.05); opacity: 1; } 26% { transform: none; } 80% { transform: none; opacity: 1; } 100% { transform: translateY(70%) scale(.9); opacity: 0; } }
+.bonushead.stretchhead { margin-top: 10px; color: #0E8F6B; }
 </style>
 </head>
 <body>
@@ -1342,6 +1343,7 @@ html { background: var(--bg); }
     coreCache = n ? m : [1, 1, 1, 1, 1, 1, 1];
     return coreCache;
   }
+  function isStretch(a) { return !!a.bonus && a.cat === 'mob'; }
   function isBonus(a) { return !!a.bonus || !coreMap()[a.day]; }
 
   function weekDone() { return done[iso(weekStart)] || {}; }
@@ -1466,16 +1468,19 @@ html { background: var(--bg); }
     el.daysub.textContent = acts.length
       ? n + ' of ' + acts.length + ' done' + (total ? ' · about ' + total + ' min' : '')
       : bonusActs.length ? 'Bonus day · optional · ' + bn + ' of ' + bonusActs.length + ' done' : 'Rest day';
-    var listItems = acts.length ? acts.concat(bonusActs.length ? [{ head: 1 }] : [], bonusActs)
-      : bonusActs.length ? [{ head: 1, text: 'Bonus day. Optional, but it earns extra credit.' }].concat(bonusActs) : [];
+    var stretchActs = bonusActs.filter(isStretch);
+    var plainBonus = bonusActs.filter(function (a) { return !isStretch(a); });
+    var stretchPart = stretchActs.length ? [{ head: 1, text: 'Posture stretching: shoulders and hips', stretch: 1 }].concat(stretchActs) : [];
+    var listItems = acts.length ? acts.concat(plainBonus.length ? [{ head: 1 }] : [], plainBonus, stretchPart)
+      : bonusActs.length ? (plainBonus.length ? [{ head: 1, text: 'Bonus day. Optional, but it earns extra credit.' }].concat(plainBonus) : []).concat(stretchPart) : [];
     if (!listItems.length) {
       el.list.innerHTML = '<li class="empty">Rest day. Recover, or take an easy walk.</li>';
     } else {
       el.list.innerHTML = listItems.map(function (a) {
-        if (a.head) return '<li class="bonushead">' + (a.text || 'Bonus, only if you still have energy') + '</li>';
+        if (a.head) return '<li class="bonushead' + (a.stretch ? ' stretchhead' : '') + '">' + (a.text || 'Bonus, only if you still have energy') + '</li>';
         var on = !!dn[a.id];
         var bits = [CATS[a.cat] || 'Strength'];
-        if (isBonus(a)) bits.unshift('Bonus');
+        if (isStretch(a)) bits[0] = 'Stretch'; else if (isBonus(a)) bits.unshift('Bonus');
         if (a.detail) bits.push(a.detail);
         return '<li class="row' + (isBonus(a) ? ' bonus' : '') + '"><button type="button" class="rowbtn" role="checkbox" aria-checked="' + on +
           '" data-act="toggle" data-id="' + esc(a.id) + '">' +
