@@ -484,6 +484,29 @@ input[type="text"]:focus, input[type="number"]:focus, select:focus { border-colo
 #panel-welcome > .panel { background: transparent; border: 0; padding: 0; }
 #panel-welcome > .panel .progress { gap: 14px; }
 #panel-welcome .rings, #panel-welcome .todaycard { background: var(--surface); border: 2px solid var(--line); border-bottom-width: 5px; border-radius: 22px; padding: 14px 16px; }
+/* ===== CELEBRATION EFFECTS (visual only, never block taps) ===== */
+#fx { position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 40; }
+.cf { position: absolute; top: -16px; width: 9px; height: 14px; border-radius: 2px; opacity: 0; animation: cfall 2s ease-in forwards; }
+@keyframes cfall { 0% { opacity: 1; transform: translate(0, 0) rotate(0); } 85% { opacity: 1; } 100% { opacity: 0; transform: translate(var(--dx), 105vh) rotate(var(--rot)); } }
+.sp { position: absolute; width: 16px; height: 16px; margin: -8px 0 0 -8px; background: #F5B301; clip-path: polygon(50% 0, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0 50%, 38% 38%); opacity: 0; animation: spk .75s ease-out forwards; }
+@keyframes spk { 0% { opacity: 1; transform: translate(0, 0) scale(.3) rotate(0); } 100% { opacity: 0; transform: translate(var(--dx), var(--dy)) scale(1.1) rotate(90deg); } }
+.av-hop { transform-origin: 50% 100%; animation: avhop .65s cubic-bezier(.3, 1.6, .5, 1); }
+@keyframes avhop { 0% { transform: scale(1); } 30% { transform: translateY(-14px) scale(1.08, .96); } 60% { transform: translateY(0) scale(.96, 1.05); } 100% { transform: scale(1); } }
+.av-dance { transform-origin: 50% 100%; animation: avdance 1.2s ease-in-out; }
+@keyframes avdance { 0% { transform: rotate(0); } 15% { transform: translateY(-16px) rotate(-8deg); } 35% { transform: translateY(0) rotate(7deg); } 55% { transform: translateY(-16px) rotate(-7deg); } 75% { transform: translateY(0) rotate(5deg); } 100% { transform: rotate(0); } }
+.fxcard { position: absolute; left: 0; right: 0; top: 22%; margin: 0 auto; width: max-content; min-width: 210px; max-width: calc(100% - 48px); box-sizing: border-box; padding: 18px 24px 16px; display: flex; flex-direction: column; align-items: center; gap: 3px; text-align: center; background: var(--surface); color: var(--ink); border: 2px solid var(--line); border-bottom-width: 5px; border-radius: 26px; box-shadow: 0 18px 50px rgba(0, 0, 0, .3); pointer-events: auto; animation: cardin .55s cubic-bezier(.2, 1.5, .4, 1) both; }
+.fxcard.out { animation: cardout .25s ease-in forwards; }
+.fxcard b { font-size: 19px; font-weight: 900; line-height: 1.2; }
+.fxcard span { font-size: 14px; font-weight: 700; color: var(--muted); }
+.fxcard .fxart { position: relative; display: flex; justify-content: center; }
+.fxcard .fxart::before { content: ""; position: absolute; left: 50%; top: 50%; width: 170px; height: 170px; margin: -85px 0 0 -85px; border-radius: 50%; background: radial-gradient(circle, rgba(245, 179, 1, .55), rgba(245, 179, 1, 0) 68%); animation: glow 1.6s ease-in-out infinite; }
+.fxcard .fxart > * { position: relative; }
+.fxcard.badge .fxart > svg { animation: bpop .9s cubic-bezier(.2, 1.6, .4, 1) both; }
+@keyframes cardin { 0% { opacity: 0; transform: scale(.4) translateY(40px); } 100% { opacity: 1; transform: scale(1) translateY(0); } }
+@keyframes cardout { to { opacity: 0; transform: scale(.85) translateY(-14px); } }
+@keyframes glow { 0%, 100% { opacity: .55; transform: scale(.9); } 50% { opacity: 1; transform: scale(1.1); } }
+@keyframes bpop { 0% { transform: scale(0) rotate(-40deg); } 60% { transform: scale(1.25) rotate(8deg); } 100% { transform: scale(1) rotate(0); } }
+@media (prefers-reduced-motion: reduce) { #fx, .av-hop, .av-dance { display: none !important; animation: none !important; } }
 </style>
 </head>
 <body>
@@ -1580,10 +1603,15 @@ input[type="text"]:focus, input[type="number"]:focus, select:focus { border-colo
     cur.level = x.level;
     if (seen === null) seen = cur;
     else {
-      var msgs = [];
-      defs.forEach(function (b) { if (b.tier > (seen[b.k] || 0)) msgs.push(cap1(TIER_NAMES[b.tier]) + ' ' + b.label + ' badge unlocked!'); });
-      if (x.level > (seen.level || 1)) msgs.push('Level ' + x.level + '! ' + x.title + '.');
-      if (msgs.length) { seen = cur; save(); toast(msgs[0]); }
+      var msgs = [], ups = [];
+      defs.forEach(function (b) { if (b.tier > (seen[b.k] || 0)) { msgs.push(cap1(TIER_NAMES[b.tier]) + ' ' + b.label + ' badge unlocked!'); ups.push(b); } });
+      var lvUp = x.level > (seen.level || 1);
+      if (lvUp) msgs.push('Level ' + x.level + '! ' + x.title + '.');
+      if (msgs.length) {
+        seen = cur; save(); toast(msgs[0]);
+        ups.forEach(fxBadge);
+        if (lvUp) fxLevel(x);
+      }
     }
     var html = levelCardHtml();
     html += '<div><h3>Badges</h3><div class="bgrid">' + defs.map(function (b, i) {
@@ -1640,6 +1668,12 @@ input[type="text"]:focus, input[type="number"]:focus, select:focus { border-colo
         'That is a slow, steady pace. Studies on athletes found a slower loss rate kept more lean mass than a fast one, and recomposition works best with a small deficit, enough protein and progressive lifting.') + '</p></div>';
     html += '<div><h3>Strength level</h3><div class="seg" role="group" aria-label="Strength level">' + lv + '</div>' +
       '<p class="fine">Suggested weights start from your body weight and strength level, then adjust to what you actually lift.</p></div>';
+    var fxLive = true;
+    try { fxLive = localStorage.getItem('jym:fx') !== '0'; } catch (e) {}
+    html += '<div><h3>Effects</h3><div class="seg" role="group" aria-label="Effects">' +
+      '<button type="button" data-act="fx" data-id="on" aria-pressed="' + fxLive + '">On</button>' +
+      '<button type="button" data-act="fx" data-id="off" aria-pressed="' + !fxLive + '">Off</button></div>' +
+      '<p class="fine">Confetti, avatar moves and pop-ups when you finish a session or unlock a badge. They never block anything. They stay off automatically if your phone has Reduce Motion turned on. This setting is per device and is not part of the backup.</p></div>';
     html += '<div><h3>Your data</h3><div class="rows"><div class="r"><span>Storage</span><b id="set-status">' + esc(statusText || modeText()) + '</b></div></div>' +
       '<div class="databtns">' + (window.claude ? '' : '<button type="button" class="ghost" data-act="export">Export backup</button>') + '<label class="ghost filebtn">Import backup<input type="file" id="imp" accept="application/json,.json" hidden></label></div>' +
       '<p class="fine">' + (window.claude ? 'Export works in the installed web app. ' : '') + 'A backup is one small file with everything: plan, ticks, weights, meals and badges. Keep one before switching phones or clearing your browser.</p>' +
@@ -1672,6 +1706,7 @@ input[type="text"]:focus, input[type="number"]:focus, select:focus { border-colo
       msg = k === iso(todayMon) && s.cur > 1 ? 'Full week done! ' + s.cur + ' weeks in a row.' : 'Full week done!';
     }
     toast(msg);
+    fxSession(weekInfo(k).full, kc);
     return true;
   }
 
@@ -2577,6 +2612,108 @@ input[type="text"]:focus, input[type="number"]:focus, select:focus { border-colo
     }
   }
 
+  /* ---------- celebrations: visual only, saving never depends on them ---------- */
+  var FXQ = [], fxBusy = false;
+  function fxOn() {
+    try { if (localStorage.getItem('jym:fx') === '0') return false; } catch (e) {}
+    try { if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return false; } catch (e) {}
+    return true;
+  }
+  function fxLayer() {
+    var l = document.getElementById('fx');
+    if (!l) { l = document.createElement('div'); l.id = 'fx'; l.setAttribute('aria-hidden', 'true'); document.body.appendChild(l); }
+    return l;
+  }
+  function fxDrop(node, ms) { setTimeout(function () { if (node.parentNode) node.parentNode.removeChild(node); }, ms); }
+  function confetti(n) {
+    try {
+      if (!fxOn()) return;
+      var l = fxLayer(), cols = ['#2457F5', '#FF6B57', '#F5B301', '#2BB673', '#8B5CF6', '#FFFFFF'];
+      if (l.childElementCount > 120) return;
+      for (var i = 0; i < n; i++) {
+        var p = document.createElement('i');
+        p.className = 'cf';
+        p.style.left = (Math.random() * 100) + '%';
+        p.style.background = cols[i % cols.length];
+        p.style.setProperty('--dx', (Math.random() * 160 - 80) + 'px');
+        p.style.setProperty('--rot', (Math.random() * 720 - 360) + 'deg');
+        p.style.animationDuration = (1.6 + Math.random() * 1.1) + 's';
+        p.style.animationDelay = (Math.random() * 0.35) + 's';
+        l.appendChild(p);
+        fxDrop(p, 3400);
+      }
+    } catch (e) {}
+  }
+  function sparkles(node) {
+    try {
+      if (!fxOn() || !node) return;
+      var r = node.getBoundingClientRect(), l = fxLayer();
+      if (!r.width || l.childElementCount > 120) return;
+      var cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+      for (var i = 0; i < 9; i++) {
+        var a = (i / 9) * Math.PI * 2 + Math.random() * 0.5, d = 38 + Math.random() * 34;
+        var s = document.createElement('i');
+        s.className = 'sp';
+        s.style.left = cx + 'px'; s.style.top = cy + 'px';
+        s.style.setProperty('--dx', Math.round(Math.cos(a) * d) + 'px');
+        s.style.setProperty('--dy', Math.round(Math.sin(a) * d) + 'px');
+        if (i % 3 === 1) s.style.background = '#FF6B57';
+        if (i % 3 === 2) s.style.background = '#2457F5';
+        l.appendChild(s);
+        fxDrop(s, 900);
+      }
+    } catch (e) {}
+  }
+  function hop(cls) {
+    try {
+      if (!fxOn()) return;
+      var sv = document.querySelector('#coach svg');
+      if (!sv) return;
+      sv.classList.remove('av-hop', 'av-dance');
+      void sv.getBoundingClientRect();
+      sv.classList.add(cls);
+      setTimeout(function () { try { sv.classList.remove(cls); } catch (e) {} }, 1400);
+      sparkles(sv);
+    } catch (e) {}
+  }
+  function fxCard(o, first) {
+    try {
+      if (!fxOn()) return;
+      if (first) FXQ.unshift(o); else FXQ.push(o);
+      if (!fxBusy) { fxBusy = true; setTimeout(fxNext, 60); }
+    } catch (e) { fxBusy = false; }
+  }
+  function fxNext() {
+    var o = FXQ.shift();
+    if (!o) { fxBusy = false; return; }
+    try {
+      var l = fxLayer(), c = document.createElement('div'), closed = false;
+      c.className = 'fxcard ' + (o.cls || '');
+      c.setAttribute('role', 'status');
+      c.innerHTML = '<div class="fxart">' + o.art + '</div><b>' + esc(o.title) + '</b><span>' + esc(o.sub || '') + '</span>';
+      var close = function () {
+        if (closed) return;
+        closed = true;
+        c.classList.add('out');
+        setTimeout(function () { if (c.parentNode) c.parentNode.removeChild(c); fxNext(); }, 260);
+      };
+      c.addEventListener('click', close);
+      l.appendChild(c);
+      if (o.confetti) confetti(o.confetti);
+      setTimeout(close, o.ms || 2800);
+    } catch (e) { fxBusy = false; }
+  }
+  function fxBadge(b) {
+    fxCard({ cls: 'badge', art: badgeSvg(b.sym, TIER_NAMES[b.tier], 112), title: cap1(TIER_NAMES[b.tier]) + ' ' + b.label, sub: 'Badge unlocked!', confetti: 26 });
+  }
+  function fxLevel(x) {
+    fxCard({ cls: 'badge', art: avatar('proud', 112, true, '#FFF3C4'), title: 'Level ' + x.level + '!', sub: x.title, confetti: 70, ms: 3400 });
+  }
+  function fxSession(week, kc) {
+    fxCard({ art: avatar('cheer', 112, true, '#DCE6FF'), title: week ? 'Full week done!' : 'Session done!', sub: week ? 'Every planned day complete.' : 'About ' + fmtKcal(round5(kc)) + ' kcal burned.', confetti: week ? 90 : 44, ms: week ? 3400 : 2600 }, true);
+    setTimeout(function () { hop('av-dance'); }, 120);
+  }
+
   /* ---------- actions ---------- */
   function toggle(id) {
     var k = iso(weekStart);
@@ -2603,6 +2740,7 @@ input[type="text"]:focus, input[type="number"]:focus, select:focus { border-colo
     if (!was && a) {
       var shown = reward(a, k);
       if (!shown && pbMsg) toast(pbMsg);
+      if (!shown || a.bonus) setTimeout(function () { hop('av-hop'); }, 0);
     }
   }
   function disarm() { restoreArmed = false; clearTimeout(restoreTimer); }
@@ -2620,6 +2758,12 @@ input[type="text"]:focus, input[type="number"]:focus, select:focus { border-colo
       if (LEVELS[lvl]) { level = lvl; save(); render(); }
     }
     else if (act === 'weigh') saveWeighIn();
+    else if (act === 'fx') {
+      var on = t.getAttribute('data-id') === 'on';
+      try { localStorage.setItem('jym:fx', on ? '1' : '0'); } catch (er) {}
+      renderSettings();
+      if (on) { confetti(30); sparkles(t); }
+    }
     else if (act === 'months') { goalMonths = +t.getAttribute('data-id') || 4; save(); render(); }
     else if (act === 'badgesel') { badgeSel = +t.getAttribute('data-i') || 0; renderGame(); }
     else if (act === 'lift') {
