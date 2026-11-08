@@ -1147,6 +1147,18 @@ html, body { overscroll-behavior-x: none; }
   var CHECK = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
   var CROSS = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>';
 
+  // Strength days are the core of the plan. Anything on a day without a strength session
+  // (Tue, Thu, Sat by default) is a bonus: it earns credit but never counts against a full week.
+  var coreCache = null;
+  function coreMap() {
+    if (coreCache) return coreCache;
+    var m = [0, 0, 0, 0, 0, 0, 0], n = 0;
+    plan.forEach(function (a) { if (!a.bonus && a.cat === 'str' && a.day >= 0 && a.day < 7 && !m[a.day]) { m[a.day] = 1; n++; } });
+    coreCache = n ? m : [1, 1, 1, 1, 1, 1, 1];
+    return coreCache;
+  }
+  function isBonus(a) { return !!a.bonus || !coreMap()[a.day]; }
+
   function weekDone() { return done[iso(weekStart)] || {}; }
 
   function stats() {
@@ -1156,7 +1168,7 @@ html, body { overscroll-behavior-x: none; }
       if (!dn[a.id]) return;
       if (a.cat === 'car') car += a.min || 0;
       else if (a.cat === 'mob') mob += 1;
-      else if (!a.bonus) perDay[a.day] += 1;
+      else if (!isBonus(a)) perDay[a.day] += 1;
     });
     var str = perDay.filter(function (n) { return n >= 2; }).length;
     return { car: car, str: str, mob: mob };
@@ -1171,7 +1183,7 @@ html, body { overscroll-behavior-x: none; }
     var k = iso(d);
     if (k < START || !dayPassed(d)) return false;
     var wk = iso(mondayOf(d)), i = (d.getDay() + 6) % 7;
-    var acts = plan.filter(function (a) { return a.day === i && !a.bonus; });
+    var acts = plan.filter(function (a) { return a.day === i && !isBonus(a); });
     if (!acts.length) return false;
     var dn = done[wk] || {};
     return acts.some(function (a) { return !dn[a.id]; });
@@ -1225,11 +1237,14 @@ html, body { overscroll-behavior-x: none; }
     var html = '';
     for (var i = 0; i < 7; i++) {
       var d = addDays(weekStart, i);
-      var acts = plan.filter(function (a) { return a.day === i && !a.bonus; });
+      var acts = plan.filter(function (a) { return a.day === i && !isBonus(a); });
       var n = acts.filter(function (a) { return dn[a.id]; }).length;
       var pct = acts.length ? Math.round(n / acts.length * 100) : 0;
       var isToday = iso(d) === iso(now);
-      var label = fmtDay.format(d) + ', ' + (acts.length ? n + ' of ' + acts.length + ' done' : 'nothing planned');
+      var bacts = plan.filter(function (a) { return a.day === i && isBonus(a); });
+      var bdone = bacts.filter(function (a) { return dn[a.id]; }).length;
+      if (!acts.length && bacts.length) pct = Math.round(bdone / bacts.length * 100);
+      var label = fmtDay.format(d) + ', ' + (acts.length ? n + ' of ' + acts.length + ' done' : bacts.length ? 'bonus day, ' + bdone + ' of ' + bacts.length + ' done' : 'nothing planned');
       html += '<button type="button" class="daybtn' + (isToday ? ' today' : '') + (acts.length ? '' : ' rest') +
         '" data-act="day" data-i="' + i + '" aria-pressed="' + (i === dayIdx) + '" aria-label="' + esc(label) + '">' +
         '<span class="dn">' + DN[i] + '</span><span class="dd">' + d.getDate() + '</span>' +
@@ -1256,25 +1271,28 @@ html, body { overscroll-behavior-x: none; }
   function renderList() {
     var d = addDays(weekStart, dayIdx);
     var dayActs = plan.filter(function (a) { return a.day === dayIdx; });
-    var acts = dayActs.filter(function (a) { return !a.bonus; });
-    var bonusActs = dayActs.filter(function (a) { return a.bonus; });
+    var acts = dayActs.filter(function (a) { return !isBonus(a); });
+    var bonusActs = dayActs.filter(function (a) { return isBonus(a); });
     var dn = weekDone();
     var n = acts.filter(function (a) { return dn[a.id]; }).length;
     el.dayhead.textContent = fmtDay.format(d);
     var total = acts.reduce(function (s, a) { return s + (a.min || 0); }, 0);
+    var bn = bonusActs.filter(function (a) { return dn[a.id]; }).length;
     el.daysub.textContent = acts.length
       ? n + ' of ' + acts.length + ' done' + (total ? ' · about ' + total + ' min' : '')
-      : 'Rest day';
-    if (!acts.length) {
+      : bonusActs.length ? 'Bonus day · optional · ' + bn + ' of ' + bonusActs.length + ' done' : 'Rest day';
+    var listItems = acts.length ? acts.concat(bonusActs.length ? [{ head: 1 }] : [], bonusActs)
+      : bonusActs.length ? [{ head: 1, text: 'Bonus day. Optional, but it earns extra credit.' }].concat(bonusActs) : [];
+    if (!listItems.length) {
       el.list.innerHTML = '<li class="empty">Rest day. Recover, or take an easy walk.</li>';
     } else {
-      el.list.innerHTML = acts.concat(bonusActs.length ? [{ head: 1 }] : [], bonusActs).map(function (a) {
-        if (a.head) return '<li class="bonushead">Bonus, only if you still have energy</li>';
+      el.list.innerHTML = listItems.map(function (a) {
+        if (a.head) return '<li class="bonushead">' + (a.text || 'Bonus, only if you still have energy') + '</li>';
         var on = !!dn[a.id];
         var bits = [CATS[a.cat] || 'Strength'];
-        if (a.bonus) bits.unshift('Bonus');
+        if (isBonus(a)) bits.unshift('Bonus');
         if (a.detail) bits.push(a.detail);
-        return '<li class="row' + (a.bonus ? ' bonus' : '') + '"><button type="button" class="rowbtn" role="checkbox" aria-checked="' + on +
+        return '<li class="row' + (isBonus(a) ? ' bonus' : '') + '"><button type="button" class="rowbtn" role="checkbox" aria-checked="' + on +
           '" data-act="toggle" data-id="' + esc(a.id) + '">' +
           '<span class="plate ' + esc(a.cat) + '">' + CHECK + '</span>' +
           '<span class="info"><span class="name">' + esc(a.name) + '</span><span class="detail">' + esc(bits.join(' · ')) + '</span></span>' +
@@ -1369,7 +1387,7 @@ html, body { overscroll-behavior-x: none; }
   }
 
   function weightRow(a) {
-    if (a.cat !== 'str' || a.bonus || NOWEIGHT[a.name]) return '';
+    if (a.cat !== 'str' || isBonus(a) || NOWEIGHT[a.name]) return '';
     var v = (logs[iso(weekStart)] || {})[a.name];
     var sug = recFor(a.name, iso(weekStart));
     var id = esc(a.id);
@@ -1391,13 +1409,13 @@ html, body { overscroll-behavior-x: none; }
 
   function weekInfo(k) {
     var dn = done[k] || {}, tot = 0, dc = 0;
-    plan.forEach(function (a) { if (a.bonus) return; tot++; if (dn[a.id]) dc++; });
+    plan.forEach(function (a) { if (isBonus(a)) return; tot++; if (dn[a.id]) dc++; });
     return { total: tot, done: dc, full: tot > 0 && dc === tot };
   }
 
   function daysComplete(k) {
     var dn = done[k] || {}, t = [0, 0, 0, 0, 0, 0, 0], c = [0, 0, 0, 0, 0, 0, 0], planned = 0, comp = 0, i;
-    plan.forEach(function (a) { if (a.bonus) return; t[a.day]++; if (dn[a.id]) c[a.day]++; });
+    plan.forEach(function (a) { if (isBonus(a)) return; t[a.day]++; if (dn[a.id]) c[a.day]++; });
     for (i = 0; i < 7; i++) if (t[i]) { planned++; if (c[i] === t[i]) comp++; }
     return { planned: planned, comp: comp };
   }
@@ -1417,7 +1435,7 @@ html, body { overscroll-behavior-x: none; }
     plan.forEach(function (a) {
       if (!dn[a.id]) return;
       var kc = kcalFor(a);
-      if (a.bonus) { extra += kc; n++; } else base += kc;
+      if (isBonus(a)) { extra += kc; n++; } else base += kc;
     });
     return { base: base, extra: extra, nExtra: n };
   }
@@ -1447,7 +1465,7 @@ html, body { overscroll-behavior-x: none; }
   function liftNames() {
     var seen = {}, out = [];
     plan.forEach(function (a) {
-      if (a.cat === 'str' && !a.bonus && SPEC[a.name] && !seen[a.name]) { seen[a.name] = 1; out.push(a.name); }
+      if (a.cat === 'str' && !isBonus(a) && SPEC[a.name] && !seen[a.name]) { seen[a.name] = 1; out.push(a.name); }
     });
     Object.keys(logs).sort().forEach(function (k) {
       Object.keys(logs[k] || {}).forEach(function (n) { if (!seen[n]) { seen[n] = 1; out.push(n); } });
@@ -1545,10 +1563,10 @@ html, body { overscroll-behavior-x: none; }
     }
 
     var html = '<div><div class="streak"><span class="big">' + st.cur + '</span><div><b>' + (st.cur === 1 ? 'week streak' : 'weeks streak') +
-      '</b><span class="s">' + (st.cur ? 'Every planned exercise ticked, all week' : 'Tick every planned exercise in a week to start one') +
+      '</b><span class="s">' + (st.cur ? 'Every strength session done, all week' : 'Finish every Monday, Wednesday and Friday session to start one') +
       '</span></div></div>' +
       '<div class="weeks" aria-label="Last 8 weeks">' + weeks + '</div>' +
-      '<p class="fine">This week: ' + dc.comp + ' of ' + dc.planned + ' days complete. Bonus exercises never count against you.</p></div>';
+      '<p class="fine">This week: ' + dc.comp + ' of ' + dc.planned + ' strength days complete. Tuesday, Thursday, Saturday and the bonus exercises are optional extras that never count against you.</p></div>';
 
     html += '<div><h3>Energy</h3><div class="rows">' +
       '<div class="r"><span>Burned this week</span><b>' + fmtKcal(b.base + b.extra) + ' kcal</b></div>' +
@@ -1600,7 +1618,7 @@ html, body { overscroll-behavior-x: none; }
     return [
       { k: 'sess', sym: 'calendar', label: 'Sessions', val: g.act, th: [8, 24, 48], unit: ' days', what: 'days trained' },
       { k: 'str', sym: 'dumbbell', label: 'Strength', val: g.strd, th: [6, 18, 36], unit: ' days', what: 'strength days' },
-      { k: 'streak', sym: 'flame', label: 'Streak', val: g.streak, th: [2, 6, 12], unit: ' wks', what: 'full weeks in a row' },
+      { k: 'streak', sym: 'flame', label: 'Streak', val: g.streak, th: [2, 6, 12], unit: ' wks', what: 'weeks in a row with every strength session done' },
       { k: 'weigh', sym: 'scale', label: 'Weigh-ins', val: g.weighIns, th: [3, 8, 16], unit: '', what: 'weekly weigh-ins' },
       { k: 'meals', sym: 'apple', label: 'Meals', val: g.meals, th: [15, 60, 150], unit: '', what: 'meals ticked' },
       { k: 'hours', sym: 'clock', label: 'Hours', val: Math.round(g.hours * 10) / 10, th: [5, 20, 50], unit: ' h', what: 'hours trained' },
@@ -1669,13 +1687,18 @@ html, body { overscroll-behavior-x: none; }
 
   function renderCoach() {
     if (!el.coach) return;
-    var acts = plan.filter(function (a) { return a.day === dayIdx && !a.bonus; });
+    var acts = plan.filter(function (a) { return a.day === dayIdx && !isBonus(a); });
     var dn = weekDone();
     var n = acts.filter(function (a) { return dn[a.id]; }).length;
     var mood, text;
     var dd = addDays(weekStart, dayIdx);
     if (missedTraining(dd)) { mood = 'angry'; text = 'This one is still open. ' + (n ? (acts.length - n) + ' left.' : 'You have not started.') + ' Do it, or it counts as missed.'; }
-    else if (!acts.length) { mood = 'rest'; text = 'Rest day. Recover, stretch, eat your protein.'; }
+    else if (!acts.length) {
+      var bact = plan.filter(function (a) { return a.day === dayIdx && isBonus(a); }), bdn = bact.filter(function (a) { return dn[a.id]; }).length;
+      if (bact.length && bdn) { mood = 'cheer'; text = 'Bonus done. Extra credit, nice!'; }
+      else if (bact.length) { mood = 'rest'; text = 'Bonus day. A walk or an easy ride is optional, a nice extra.'; }
+      else { mood = 'rest'; text = 'Rest day. Recover, stretch, eat your protein.'; }
+    }
     else if (n === acts.length) { mood = 'cheer'; text = 'All done for the day. Great work!'; }
     else if (n === 0) { mood = 'work'; text = 'Ready? ' + acts.length + ' things on the list today. Let\'s go!'; }
     else { mood = 'work'; text = n + ' of ' + acts.length + ' done. Keep going!'; }
@@ -1715,7 +1738,7 @@ html, body { overscroll-behavior-x: none; }
     html += '<div><h3>Your data</h3><div class="rows"><div class="r"><span>Storage</span><b id="set-status">' + esc(statusText || modeText()) + '</b></div></div>' +
       '<div class="databtns">' + (window.claude ? '' : '<button type="button" class="ghost" data-act="export">Export backup</button>') + '<label class="ghost filebtn">Import backup<input type="file" id="imp" accept="application/json,.json" hidden></label></div>' +
       '<p class="fine">' + (window.claude ? 'Export works in the installed web app. ' : '') + 'A backup is one small file with everything: plan, ticks, weights, meals and badges. Keep one before switching phones or clearing your browser.</p>' +
-      '<p class="fine">Three lifting sessions a week of 45 to 60 minutes, each ending with 15 minutes of cardio, plus easy cardio on Tuesday, Thursday and Saturday to reach 150 minutes. Fat can\'t be burned from one spot, so belly fat comes down as your whole body loses fat, which also needs a modest calorie deficit and enough protein. Keep neck work light and slow. A day counts as a strength day once you tick 2 or more lifts. All strength exercises use free weights. Ticking a lift without typing a weight logs the suggested weight.</p>' + '</div>';
+      '<p class="fine">Three lifting sessions a week of 45 to 60 minutes, each ending with 15 minutes of cardio, plus easy cardio on Tuesday, Thursday and Saturday to reach 150 minutes. Those three are bonus days: optional, they earn extra credit and never count against you. A week keeps your streak once every Monday, Wednesday and Friday session is fully ticked. Fat can\'t be burned from one spot, so belly fat comes down as your whole body loses fat, which also needs a modest calorie deficit and enough protein. Keep neck work light and slow. A day counts as a strength day once you tick 2 or more lifts. All strength exercises use free weights. Ticking a lift without typing a weight logs the suggested weight.</p>' + '</div>';
     el.settings.innerHTML = html;
     if (fid && /^(startkg|startfat|goalkg|bw)$/.test(fid)) { var fe = document.getElementById(fid); if (fe) { try { fe.focus(); } catch (e) {} } }
   }
@@ -1734,8 +1757,8 @@ html, body { overscroll-behavior-x: none; }
 
   function reward(a, k) {
     var dn = done[k] || {};
-    if (a.bonus) { toast('Bonus done. About +' + round5(kcalFor(a)) + ' kcal extra.'); return true; }
-    var dayActs = plan.filter(function (x) { return x.day === a.day && !x.bonus; });
+    if (isBonus(a)) { toast('Bonus done. About +' + round5(kcalFor(a)) + ' kcal extra.'); return true; }
+    var dayActs = plan.filter(function (x) { return x.day === a.day && !isBonus(x); });
     if (!dayActs.every(function (x) { return dn[x.id]; })) return false;
     var kc = dayActs.reduce(function (s, x) { return s + kcalFor(x); }, 0);
     var msg = 'Session done. About ' + fmtKcal(round5(kc)) + ' kcal burned.';
@@ -2352,10 +2375,10 @@ html, body { overscroll-behavior-x: none; }
     var dn = done[k] || {}, planned = 0, base = 0, all = 0, lifts = 0;
     plan.forEach(function (a) {
       if (a.day !== i) return;
-      if (!a.bonus) planned += a.min || 0;
+      if (!isBonus(a)) planned += a.min || 0;
       if (dn[a.id]) {
         all += a.min || 0;
-        if (!a.bonus) { base += a.min || 0; if (a.cat === 'str') lifts++; }
+        if (!isBonus(a)) { base += a.min || 0; if (a.cat === 'str') lifts++; }
       }
     });
     return { planned: planned, base: base, all: all, lifts: lifts, frac: planned ? Math.min(1, base / planned) : null, active: all > 0 };
@@ -2385,7 +2408,7 @@ html, body { overscroll-behavior-x: none; }
       allMin += td.all;
       if (i <= lastDay) {
         plannedMin += td.planned; baseMin += td.base;
-        if (plan.some(function (a) { return a.day === i && a.cat === 'str' && !a.bonus; })) strTarget++;
+        if (plan.some(function (a) { return a.day === i && a.cat === 'str' && !isBonus(a); })) strTarget++;
       }
       if (td.lifts >= 2) strDays++;
       if (td.active) actDays++;
@@ -2425,7 +2448,7 @@ html, body { overscroll-behavior-x: none; }
         svg += '<rect class="wb n" x="' + (cx + 1).toFixed(1) + '" y="' + (T + ph - nh).toFixed(1) + '" width="' + bw + '" height="' + nh.toFixed(1) + '" rx="2"/>';
       }
       svg += '<text x="' + cx.toFixed(1) + '" y="' + (H - 12) + '" text-anchor="middle">' + DAYN[i] + '</text>';
-      if (tv === null && !future) svg += '<text x="' + (cx - bw / 2 - 1).toFixed(1) + '" y="' + (T + ph - 4) + '" text-anchor="middle" style="font-size:8px">rest</text>';
+      if (tv === null && !future) svg += '<text x="' + (cx - bw / 2 - 1).toFixed(1) + '" y="' + (T + ph - 4) + '" text-anchor="middle" style="font-size:8px">' + (d.t.all > 0 ? 'bonus' : 'rest') + '</text>';
     }
     return svg + '</svg>';
   }
@@ -2447,8 +2470,8 @@ html, body { overscroll-behavior-x: none; }
     else head = 'A new week is a clean start. Show up for the first session.';
 
     var tdy0 = trainDay(iso(todayMon), todayIdx), tdone0 = 0;
-    plan.forEach(function (a) { if (a.day === todayIdx && !a.bonus && (done[iso(todayMon)] || {})[a.id]) tdone0++; });
-    var tcount0 = plan.filter(function (a) { return a.day === todayIdx && !a.bonus; }).length;
+    plan.forEach(function (a) { if (a.day === todayIdx && !isBonus(a) && (done[iso(todayMon)] || {})[a.id]) tdone0++; });
+    var tcount0 = plan.filter(function (a) { return a.day === todayIdx && !isBonus(a); }).length;
     var slack = slackMsg();
     if (slack) head = slack;
     var hmood = slack ? 'angry' : notStarted ? 'idea' : (hasLast && lw.stars >= 4) ? 'cheer' : (!tdy0.planned ? 'rest' : tdone0 >= tcount0 ? 'cheer' : 'work');
@@ -2465,11 +2488,12 @@ html, body { overscroll-behavior-x: none; }
       ring(50, ws.trainFrac, 'rt') + ring(38, Math.min(1, ws.strDays / 3), 'rs') + ring(26, ws.nutriOn ? ws.nutr : 0, 'rn') + '</g></svg>' +
       '<div class="rlegend"><div style="--d:var(--acc)"><span>TRAINING</span><b>' + rT + '%</b></div><div style="--d:var(--acc2)"><span>STRENGTH</span><b>' + Math.min(3, ws.strDays) + ' of 3 days</b></div><div style="--d:var(--ink)"><span>NUTRITION</span><b>' + rN + '%</b></div></div></div>';
     var tdy = trainDay(iso(todayMon), todayIdx), dnames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-    var tcount = 0, tdone = 0;
-    plan.forEach(function (a) { if (a.day === todayIdx && !a.bonus) { tcount++; if ((done[iso(todayMon)] || {})[a.id]) tdone++; } });
+    var tcount = 0, tdone = 0, bonusToday = plan.some(function (a) { return a.day === todayIdx && isBonus(a); });
+    plan.forEach(function (a) { if (a.day === todayIdx && !isBonus(a)) { tcount++; if ((done[iso(todayMon)] || {})[a.id]) tdone++; } });
     html += '<div class="todaycard"><div class="tt">Today · ' + dnames[todayIdx] + '</div><div class="line" style="margin:0">' +
-      (tdy.planned ? hm(tdy.planned) + ' planned · ' + tdone + ' of ' + tcount + ' done' : 'Rest day. Keep it light and eat enough protein.') + '</div>' +
-      (tdy.planned ? '<div class="tbar"><i style="width:' + Math.round(tcount ? tdone / tcount * 100 : 0) + '%"></i></div><button type="button" class="primary" data-act="tab" data-id="workout">Open today\'s workout</button>' : '') + '</div>';
+      (tdy.planned ? hm(tdy.planned) + ' planned · ' + tdone + ' of ' + tcount + ' done' : bonusToday ? 'Bonus day. Optional, but it earns extra credit.' : 'Rest day. Keep it light and eat enough protein.') + '</div>' +
+      (tdy.planned ? '<div class="tbar"><i style="width:' + Math.round(tcount ? tdone / tcount * 100 : 0) + '%"></i></div><button type="button" class="primary" data-act="tab" data-id="workout">Open today\'s workout</button>'
+        : bonusToday ? '<button type="button" class="primary" data-act="tab" data-id="workout">See the bonus options</button>' : '') + '</div>';
 
     // star rating
     var allMin = 0, allDays = 0;
@@ -2499,7 +2523,7 @@ html, body { overscroll-behavior-x: none; }
     html += '<div><h3>Overview</h3><div class="rows">' +
       '<div class="r"><span>Hours trained, all time</span><b>' + hm(allMin) + '</b></div>' +
       '<div class="r"><span>Active days, all time</span><b>' + allDays + '</b></div>' +
-      '<div class="r"><span>Full-week streak</span><b>' + streaks().cur + (streaks().cur === 1 ? ' week' : ' weeks') + '</b></div>' +
+      '<div class="r"><span>Weekly streak</span><b>' + streaks().cur + (streaks().cur === 1 ? ' week' : ' weeks') + '</b></div>' +
       '<div class="r"><span>Weigh-in streak</span><b>' + weighStreak() + (weighStreak() === 1 ? ' week' : ' weeks') + '</b></div>';
     var wk = weighKeys();
     var curW = wk.length ? weigh[wk[wk.length - 1]].kg : startKg, totW = Math.max(0.1, startKg - goalKg);
@@ -2524,7 +2548,7 @@ html, body { overscroll-behavior-x: none; }
     el.welcome.innerHTML = html;
   }
   /* ===== END WELCOME BACK ===== */
-  function render() { renderHead(); renderCoach(); renderStrip(); renderTargets(); renderList(); renderGame(); renderBody(); renderProgress(); renderNutrition(); renderWelcome(); renderSettings(); }
+  function render() { coreCache = null; renderHead(); renderCoach(); renderStrip(); renderTargets(); renderList(); renderGame(); renderBody(); renderProgress(); renderNutrition(); renderWelcome(); renderSettings(); }
 
   /* ---------- saving ---------- */
   var ref = null;
@@ -2533,6 +2557,7 @@ html, body { overscroll-behavior-x: none; }
 
   function serialize() { return { v: 9, seen: seen, startKg: startKg, startFat: startFat, plan: plan, done: done, logs: logs, recs: recs, level: level, body: bodyKg, weigh: weigh, goalKg: goalKg, goalMonths: goalMonths, nutri: nutriSerialize() }; }
   function apply(data) {
+    coreCache = null;
     if (!data || typeof data !== 'object') return;
     // Data read from the database arrives frozen. Work on a plain copy so ticks and weights can be changed.
     try { data = JSON.parse(JSON.stringify(data)); } catch (e) { return; }
@@ -2604,6 +2629,7 @@ html, body { overscroll-behavior-x: none; }
   }
 
   function save() {
+    coreCache = null;
     touched = true;
     clearTimeout(saveTimer);
     saveTimer = setTimeout(flush, 500);
@@ -2897,7 +2923,7 @@ html, body { overscroll-behavior-x: none; }
     fxCard({ cls: 'badge', art: avatar('proud', 112, true, '#FFF3C4'), title: 'Level ' + x.level + '!', sub: x.title, confetti: 70, ms: 3400 });
   }
   function fxSession(week, kc) {
-    fxCard({ art: avatar('cheer', 112, true, '#DCE6FF'), title: week ? 'Full week done!' : 'Session done!', sub: week ? 'Every planned day complete.' : 'About ' + fmtKcal(round5(kc)) + ' kcal burned.', confetti: week ? 90 : 44, ms: week ? 3400 : 2600 }, true);
+    fxCard({ art: avatar('cheer', 112, true, '#DCE6FF'), title: week ? 'Full week done!' : 'Session done!', sub: week ? 'All strength sessions done.' : 'About ' + fmtKcal(round5(kc)) + ' kcal burned.', confetti: week ? 90 : 44, ms: week ? 3400 : 2600 }, true);
     setTimeout(function () { hop('av-dance'); }, 120);
   }
 
@@ -2911,7 +2937,7 @@ html, body { overscroll-behavior-x: none; }
     if (!Object.keys(done[k]).length) delete done[k];
     // Ticking a lift without typing a weight counts as lifting the suggested weight.
     var pbMsg = null;
-    if (!was && a && a.cat === 'str' && !a.bonus && SPEC[a.name] && !(+((logs[k] || {})[a.name]) > 0)) {
+    if (!was && a && a.cat === 'str' && !isBonus(a) && SPEC[a.name] && !(+((logs[k] || {})[a.name]) > 0)) {
       var w = recFor(a.name, k);
       if (w) {
         var prevBest = 0;
@@ -2927,7 +2953,7 @@ html, body { overscroll-behavior-x: none; }
     if (!was && a) {
       var shown = reward(a, k);
       if (!shown && pbMsg) toast(pbMsg);
-      if (!shown || a.bonus) setTimeout(function () { hop('av-hop'); }, 0);
+      if (!shown || isBonus(a)) setTimeout(function () { hop('av-hop'); }, 0);
     }
   }
   function disarm() { restoreArmed = false; clearTimeout(restoreTimer); }
