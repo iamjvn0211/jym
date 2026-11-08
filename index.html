@@ -2683,7 +2683,7 @@ html { background: var(--bg); }
     var rT = Math.round(ws.trainFrac * 100), rN = ws.nutriOn ? Math.round(ws.nutr * 100) : 0;
     html += '<div class="rings"><svg width="112" height="112" viewBox="0 0 112 112" role="img" aria-label="Training ' + rT + ' percent, strength ' + Math.min(3, ws.strDays) + ' of 3 days, nutrition ' + rN + ' percent"><g transform="rotate(-90 56 56)">' +
       ring(50, ws.trainFrac, 'rt') + ring(38, Math.min(1, ws.strDays / 3), 'rs') + ring(26, ws.nutriOn ? ws.nutr : 0, 'rn') + '</g></svg>' +
-      '<div class="rlegend"><div style="--d:var(--acc)"><span>TRAINING</span><b>' + rT + '%</b></div><div style="--d:var(--acc2)"><span>STRENGTH</span><b>' + Math.min(3, ws.strDays) + ' of 3 days</b></div><div style="--d:var(--ink)"><span>NUTRITION</span><b>' + rN + '%</b></div></div></div>';
+      '<div class="rlegend"><div style="--d:var(--acc)"><span>TRAINING</span><b>' + rT + '%</b></div><div style="--d:var(--acc2)"><span>STRENGTH</span><b>' + Math.min(3, ws.strDays) + ' of 3 days</b></div><div style="--d:var(--grn)"><span>NUTRITION</span><b>' + rN + '%</b></div></div></div>';
     var tdy = trainDay(iso(todayMon), todayIdx), dnames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
     var tcount = 0, tdone = 0, bonusToday = plan.some(function (a) { return a.day === todayIdx && isBonus(a); });
     plan.forEach(function (a) { if (a.day === todayIdx && !isBonus(a)) { tcount++; if ((done[iso(todayMon)] || {})[a.id]) tdone++; } });
