@@ -2744,37 +2744,68 @@ input[type="text"]:focus, input[type="number"]:focus, select:focus { border-colo
     };
     return '<g class="fl" style="animation-delay:' + delay + 's;transform-origin:' + cx + 'px ' + base + 'px"><path d="' + p(h, w) + '" fill="' + outer + '"/><path d="' + p(h * 0.62, w * 0.55) + '" fill="' + inner + '"/></g>';
   }
-  var FBODY = function () {
+  var FPOSES = {
+    // each arm: shoulder is fixed; el = elbow, hd = fist, bic = biceps bulge. Right arm mirrors unless "R" is given.
+    biceps: { L: { el: [-4, 214], hd: [-14, 124], bic: [4, 192] }, tors: 0, stance: 0 },
+    lats: { L: { el: [-14, 252], hd: [52, 298], bic: null }, tors: 1, stance: 0 },
+    crab: { L: { el: [0, 228], hd: [88, 240], bic: [10, 212] }, tors: 0, stance: 4, grit: 1 },
+    abs: { L: { el: [-12, 156], hd: [48, 70], bic: null }, tors: 0, stance: 10 },
+    single: { L: { el: [-14, 252], hd: [52, 298], bic: null }, R: { el: [204, 214], hd: [214, 124], bic: [196, 192] }, tors: 0, stance: 0, wink: 1 },
+    victory: { L: { el: [14, 134], hd: [-8, 66], bic: null }, tors: 0, stance: 6 }
+  };
+  var FBODY = function (pose) {
+    var P = FPOSES[pose] || FPOSES.biceps;
     var skin = '#FFC495', skinD = '#F2A06E', navy = '#1B2A4E', navyD = '#121C38';
     var fire = '';
     [[-6, 470, 150, 26, 0], [26, 470, 110, 20, .15], [-30, 470, 90, 18, .3], [206, 470, 150, 26, .1], [174, 470, 110, 20, .25], [230, 470, 90, 18, .05]].forEach(function (f) {
       fire += flameSvg(f[0], f[1], f[2], f[3], f[4], '#FF6B1A', '#FFD23F');
     });
-    var arm = function (mx) {
-      var X = function (x) { return mx ? 200 - x : x; };
-      return '<path d="M' + X(46) + ' 200 L' + X(-4) + ' 214" stroke="' + skin + '" stroke-width="30" stroke-linecap="round"/>' +
-        '<path d="M' + X(-4) + ' 214 L' + X(-12) + ' 138" stroke="' + skin + '" stroke-width="28" stroke-linecap="round"/>' +
-        '<ellipse class="bic" cx="' + X(4) + '" cy="192" rx="20" ry="17" fill="' + skin + '"/>' +
-        '<path d="M' + X(-12) + ' 196 Q' + X(4) + ' 178 ' + X(22) + ' 190" stroke="' + skinD + '" stroke-width="3" fill="none" stroke-linecap="round"/>' +
-        '<path d="M' + X(52) + ' 196 L' + X(36) + ' 200" stroke="' + navy + '" stroke-width="40" stroke-linecap="round"/>' +
-        '<circle cx="' + X(-14) + '" cy="124" r="18" fill="' + skin + '"/>' +
-        '<path d="M' + X(-24) + ' 118 h20 M' + X(-22) + ' 127 h16" stroke="' + skinD + '" stroke-width="3" stroke-linecap="round"/>';
+    var mir = function (a) {
+      return a ? { el: [200 - a.el[0], a.el[1]], hd: [200 - a.hd[0], a.hd[1]], bic: a.bic ? [200 - a.bic[0], a.bic[1]] : null } : null;
     };
+    var arm = function (a, sx) {
+      var S = [sx, 200], v = [a.el[0] - S[0], a.el[1] - S[1]];
+      var s1 = [S[0] - 0.12 * v[0], S[1] - 0.12 * v[1] - 2], s2 = [S[0] + 0.22 * v[0], S[1] + 0.22 * v[1]];
+      var dir = sx < 100 ? 1 : -1;
+      var h = '<path d="M' + S[0] + ' ' + S[1] + ' L' + a.el[0] + ' ' + a.el[1] + '" stroke="' + skin + '" stroke-width="30" stroke-linecap="round"/>' +
+        '<path d="M' + a.el[0] + ' ' + a.el[1] + ' L' + a.hd[0] + ' ' + (a.hd[1] + 14) + '" stroke="' + skin + '" stroke-width="28" stroke-linecap="round"/>';
+      if (a.bic) h += '<ellipse class="bic" cx="' + a.bic[0] + '" cy="' + a.bic[1] + '" rx="20" ry="17" fill="' + skin + '"/>' +
+        '<path d="M' + (a.bic[0] - 16 * dir) + ' ' + (a.bic[1] + 4) + ' Q' + a.bic[0] + ' ' + (a.bic[1] - 14) + ' ' + (a.bic[0] + 18 * dir) + ' ' + (a.bic[1] - 2) + '" stroke="' + skinD + '" stroke-width="3" fill="none" stroke-linecap="round"/>';
+      h += '<path d="M' + s1[0] + ' ' + s1[1] + ' L' + s2[0] + ' ' + s2[1] + '" stroke="' + navy + '" stroke-width="40" stroke-linecap="round"/>' +
+        '<circle cx="' + a.hd[0] + '" cy="' + a.hd[1] + '" r="18" fill="' + skin + '"/>' +
+        '<path d="M' + (a.hd[0] - 10) + ' ' + (a.hd[1] - 6) + ' h20 M' + (a.hd[0] - 8) + ' ' + (a.hd[1] + 3) + ' h16" stroke="' + skinD + '" stroke-width="3" stroke-linecap="round"/>';
+      return h;
+    };
+    var L = P.L, R = P.R || mir(P.L);
+    var torso = P.tors
+      ? '<path d="M14 204 C16 174 58 166 100 166 C142 166 184 174 186 204 L152 304 H48 Z" fill="' + navy + '"/>'
+      : '<path d="M30 192 C30 172 60 166 100 166 C140 166 170 172 170 192 L150 304 H50 Z" fill="' + navy + '"/>';
+    var st = P.stance;
+    var leg = function (x, rot, px) {
+      return '<g transform="rotate(' + rot + ' ' + px + ' 330)"><rect x="' + x + '" y="330" width="32" height="112" rx="14" fill="' + skin + '"/>' +
+        (x < 100 ? '<path d="M52 440 Q52 432 62 432 H96 V462 H58 Q52 462 52 456Z" fill="#fff" stroke="#D5DAE3" stroke-width="2"/><rect x="52" y="456" width="44" height="8" rx="4" fill="#FF6B57"/>'
+          : '<path d="M148 440 Q148 432 138 432 H104 V462 H142 Q148 462 148 456Z" fill="#fff" stroke="#D5DAE3" stroke-width="2"/><rect x="104" y="456" width="44" height="8" rx="4" fill="#FF6B57"/>') + '</g>';
+    };
+    var face = '<use href="#av-hd"/><use href="#av-ey"/>';
+    if (P.grit) face += '<path d="M52 66 L94 80" stroke="#6B4630" stroke-width="10" stroke-linecap="round"/><path d="M148 66 L106 80" stroke="#6B4630" stroke-width="10" stroke-linecap="round"/>' +
+      '<rect x="78" y="136" width="44" height="18" rx="7" fill="#fff" stroke="#6B1A26" stroke-width="3"/><path d="M89 136 V154 M100 136 V154 M111 136 V154" stroke="#C9CFDB" stroke-width="2"/>';
+    else face += '<use href="#av-mo-big"/>';
+    if (P.wink) face += '<ellipse cx="74" cy="92" rx="18" ry="21" fill="#FFC495"/><path d="M58 94 Q74 106 90 94" stroke="#2A1A14" stroke-width="7" fill="none" stroke-linecap="round"/><path d="M56 70 Q74 62 92 70" stroke="#6B4630" stroke-width="8" fill="none" stroke-linecap="round"/>';
     return '<svg class="fb" viewBox="-44 -34 288 520" aria-hidden="true">' + fire +
-      '<rect x="62" y="330" width="32" height="112" rx="14" fill="' + skin + '"/><rect x="106" y="330" width="32" height="112" rx="14" fill="' + skin + '"/>' +
-      '<path d="M52 440 Q52 432 62 432 H96 V462 H58 Q52 462 52 456Z" fill="#fff" stroke="#D5DAE3" stroke-width="2"/><rect x="52" y="456" width="44" height="8" rx="4" fill="#FF6B57"/>' +
-      '<path d="M148 440 Q148 432 138 432 H104 V462 H142 Q148 462 148 456Z" fill="#fff" stroke="#D5DAE3" stroke-width="2"/><rect x="104" y="456" width="44" height="8" rx="4" fill="#FF6B57"/>' +
+      leg(62, st, 78) + leg(106, -st, 122) +
       '<path d="M56 296 H144 L150 372 H104 L100 340 L96 372 H50 Z" fill="#2B3A55"/><rect x="56" y="292" width="88" height="12" rx="5" fill="' + navy + '"/>' +
       '<path d="M56 318 L52 372 M144 318 L148 372" stroke="#FF6B57" stroke-width="5" stroke-linecap="round"/>' +
-      '<path d="M30 192 C30 172 60 166 100 166 C140 166 170 172 170 192 L150 304 H50 Z" fill="' + navy + '"/>' +
+      torso +
       '<rect x="82" y="148" width="36" height="34" rx="12" fill="' + skinD + '"/>' +
       '<path d="M80 168 Q100 204 120 168 Z" fill="' + skinD + '"/>' +
       '<path d="M76 166 L100 198 L84 206 L64 178 Z M124 166 L100 198 L116 206 L136 178 Z" fill="' + navy + '" stroke="' + navyD + '" stroke-width="2.5" stroke-linejoin="round"/>' +
       '<path d="M100 198 V250" stroke="' + navyD + '" stroke-width="3"/><circle cx="100" cy="214" r="2.5" fill="' + navyD + '"/><circle cx="100" cy="232" r="2.5" fill="' + navyD + '"/>' +
-      '<g class="armL">' + arm(false) + '</g><g class="armR">' + arm(true) + '</g>' +
-      '<use href="#av-hd"/><use href="#av-ey"/><use href="#av-mo-big"/></svg>';
+      '<g class="armL">' + arm(L, 46) + '</g><g class="armR">' + arm(R, 154) + '</g>' +
+      face + '</svg>';
   };
-  var WELCOME_MSGS = ['Let\'s go jymming, Jan!', 'Welcome back, Jan!', 'Time to get stronger, Jan!', 'Jan is in the building!', 'Ready to crush it, Jan?', 'Iron is waiting, Jan.', 'Show up. Lift. Repeat.', 'Look who is back!', 'Today we get better.', 'Let\'s work, Jan!'];
+  var WELCOME_MSGS = ['Let\'s go jymming, Jan!', 'Welcome back, Jan!', 'Time to get stronger, Jan!', 'Jan is in the building!', 'Ready to crush it, Jan?', 'Iron is waiting, Jan.', 'Show up. Lift. Repeat.', 'Look who is back!', 'Today we get better.', 'Let\'s work, Jan!',
+    'I\'ll be back. After leg day.', 'Hasta la vista, couch!', 'Get to the barbell, Jan!', 'Light weight, baby!', 'May the gains be with you, Jan.', 'One does not simply skip leg day.',
+    'Your biceps called. They want a raise.', 'Mirror, mirror: who is the strongest of all?', 'It is not the size of the dumbbell. Okay, it is.', 'Gains loading... please wait.'];
   var welAt = 0;
   function welcomeText() {
     var pool = WELCOME_MSGS.slice(), h = new Date().getHours();
@@ -2786,6 +2817,15 @@ input[type="text"]:focus, input[type="number"]:focus, select:focus { border-colo
     while (pool[i] === pool[last] && g++ < 5) i = Math.floor(Math.random() * pool.length);
     try { localStorage.setItem('jym:wl', String(i)); } catch (e) {}
     return pool[i];
+  }
+  function welcomePose() {
+    if (window.__forcePose) return window.__forcePose;
+    var names = Object.keys(FPOSES), last = '';
+    try { last = localStorage.getItem('jym:wp') || ''; } catch (e) {}
+    var n = names[Math.floor(Math.random() * names.length)], g = 0;
+    while (n === last && g++ < 6) n = names[Math.floor(Math.random() * names.length)];
+    try { localStorage.setItem('jym:wp', n); } catch (e) {}
+    return n;
   }
   function burstAt(cx, cy, n) {
     try {
@@ -2816,9 +2856,11 @@ input[type="text"]:focus, input[type="number"]:focus, select:focus { border-colo
       var emb = '';
       for (var i = 0; i < 18; i++) emb += '<i class="em" style="left:' + (8 + Math.random() * 84) + '%;--ex:' + Math.round(Math.random() * 60 - 30) + 'px;animation-delay:' + (Math.random() * 2).toFixed(2) + 's"></i>';
       var l = fxLayer(), w = document.createElement('div'), gone = false;
+      var poseName = welcomePose();
+      w.setAttribute('data-pose', poseName);
       w.className = 'wel ' + pick(['v-rise', 'v-slam', 'v-zoom']) + ' ' + pick(['b-pop', 'b-slide', 'b-drop']);
       w.innerHTML = '<div class="wbg"></div><div class="wbanner"><span>' + esc(welcomeText()) + '</span></div>' +
-        '<div class="wstage"><div class="waura"></div><div class="wring"></div>' + emb + FBODY() + '</div>';
+        '<div class="wstage"><div class="waura"></div><div class="wring"></div>' + emb + FBODY(poseName) + '</div>';
       l.appendChild(w);
       var bye = function () {
         if (gone) return;
@@ -2834,7 +2876,8 @@ input[type="text"]:focus, input[type="number"]:focus, select:focus { border-colo
           var sv = w.querySelector('svg.fb');
           if (!sv || gone) return;
           var r = sv.getBoundingClientRect(), sx = r.width / 288, sy = r.height / 520;
-          [[-14, 124], [214, 124]].forEach(function (p) { burstAt(r.left + (p[0] + 44) * sx, r.top + (p[1] + 34) * sy, k); });
+          var pp = FPOSES[w.getAttribute('data-pose')] || FPOSES.biceps, hl = pp.L.hd, hr = pp.R ? pp.R.hd : [200 - hl[0], hl[1]];
+          [hl, hr].forEach(function (p) { burstAt(r.left + (p[0] + 44) * sx, r.top + (p[1] + 34) * sy, k); });
         } catch (e) {}
       };
       setTimeout(function () { burst(10); }, 750);
