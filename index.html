@@ -2807,8 +2807,10 @@ input[type="text"]:focus, input[type="number"]:focus, select:focus { border-colo
     try {
       if (!fxOn()) return;
       var t = Date.now();
-      if (!force && t - welAt < 6000) return;
-      if (document.querySelector('#fx .wel')) return;
+      if (!force && t - welAt < 1500) return;
+      if (document.querySelector('#fx .wel:not(.out)') && !force) return;
+      var oldW = document.querySelectorAll('#fx .wel');
+      for (var oi = 0; oi < oldW.length; oi++) { if (oldW[oi].parentNode) oldW[oi].parentNode.removeChild(oldW[oi]); }
       welAt = t;
       var pick = function (a) { return a[Math.floor(Math.random() * a.length)]; };
       var emb = '';
