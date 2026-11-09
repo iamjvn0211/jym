@@ -1312,8 +1312,38 @@ html { background: var(--bg); }
   var BTIER = {"bronze": ["#F6BE8A", "#C7763A", "#8F4E22", "#FBD3B0"], "silver": ["#E4E9F2", "#98A4BA", "#667289", "#FFFFFF"], "gold": ["#FFD84D", "#F09A00", "#A86A00", "#FFF1B8"], "diamond": ["#C4F6FF", "#3F8BFF", "#2358B5", "#E4FBFF"], "locked": ["#EEF0F4", "#CBD1DC", "#A7AFBE", "#F7F8FA"]};
   document.body.insertAdjacentHTML('afterbegin', AVDEFS);
   var avUid = 0;
-  function avatar(mood, size, crop, bg) {
-    var m = AVMOOD[mood] || AVMOOD.idea;
+
+  // Jan's build follows the weigh-ins. +1 = goal + 5 kg (soft), 0 = the classic look, -1 = goal - 4 kg (defined).
+  function curF() {
+    var ks = Object.keys(weigh).sort(), kg = ks.length ? +weigh[ks[ks.length - 1]].kg : bodyKg;
+    return kg > 0 ? buildF(kg) : 0;
+  }
+  function buildF(kg) { var d = kg - goalKg; return Math.max(-1, Math.min(1, d >= 0 ? d / 5 : d / 4)); }
+  function fOf(f) { return f == null ? curF() : Math.max(-1, Math.min(1, f)); }
+  function n1(x) { return Math.round(x * 10) / 10; }
+  // Head with a rounder face and a double chin when heavier, sharper cheekbones when leaner.
+  function jHead(f) {
+    var fat = Math.max(0, f), lean = Math.max(0, -f);
+    if (!fat && !lean) return '<use href="#av-hd"/>';
+    var sx = 1 + 0.16 * fat - 0.09 * lean, sy = 1 + 0.04 * fat - 0.02 * lean;
+    var o = '';
+    if (fat > 0.08) o += '<ellipse cx="100" cy="' + n1(158 + 8 * fat) + '" rx="' + n1(38 + 30 * fat) + '" ry="' + n1(12 + 20 * fat) + '" fill="#C79A7C"/>' +
+      '<path d="M' + n1(64 - 6 * fat) + ' ' + n1(178 + 10 * fat) + ' Q100 ' + n1(190 + 14 * fat) + ' ' + n1(136 + 6 * fat) + ' ' + n1(178 + 10 * fat) + '" stroke="#A47A5E" stroke-width="3.5" fill="none" stroke-linecap="round" opacity="' + n1(0.35 + 0.6 * fat) + '"/>';
+    o += '<g transform="translate(100 100) scale(' + n1(sx * 100) / 100 + ' ' + n1(sy * 100) / 100 + ') translate(-100 -100)"><use href="#av-hd"/></g>';
+    if (fat > 0.2) o += '<ellipse cx="50" cy="112" rx="' + n1(13 + 7 * fat) + '" ry="' + n1(8 + 4 * fat) + '" fill="#FF8F7A" opacity=".35"/><ellipse cx="150" cy="112" rx="' + n1(13 + 7 * fat) + '" ry="' + n1(8 + 4 * fat) + '" fill="#FF8F7A" opacity=".35"/>';
+    if (lean > 0.05) o += '<path d="M44 108 Q56 134 80 142" stroke="#8A5C3C" stroke-width="4" fill="none" stroke-linecap="round" opacity="' + n1(0.7 * lean) + '"/>' +
+      '<path d="M156 108 Q144 134 120 142" stroke="#8A5C3C" stroke-width="4" fill="none" stroke-linecap="round" opacity="' + n1(0.7 * lean) + '"/>' +
+      '<path d="M82 74 L94 78 M118 74 L106 78" stroke="#6B4630" stroke-width="3" stroke-linecap="round" opacity="' + n1(0.6 * lean) + '"/>';
+    return o;
+  }
+  function avatar(mood, size, crop, bg, bf) {
+    var m = AVMOOD[mood] || AVMOOD.idea, f = fOf(bf), fat = Math.max(0, f), lean = Math.max(0, -f);
+    if (f) {
+      var bw = 1 + 0.18 * fat + 0.1 * lean;
+      m = m.split('<use href="#av-body"/>').join('<g transform="translate(100 0) scale(' + n1(bw * 100) / 100 + ' 1) translate(-100 0)"><use href="#av-body"/></g>')
+        .split('<use href="#av-hd"/>').join(jHead(f))
+        .split('stroke-width="26"').join('stroke-width="' + n1(26 + 11 * fat + 7 * lean) + '"');
+    }
     if (crop) return '<span class="avc" style="width:' + size + 'px;height:' + size + 'px;background:' + (bg || '#DCE6FF') + '"><svg width="' + size + '" height="' + size + '" viewBox="-6 -22 212 212" aria-hidden="true">' + m + '</svg></span>';
     return '<svg class="avf" width="' + size + '" height="' + Math.round(size * 270 / 260) + '" viewBox="-30 -20 260 270" aria-hidden="true">' + m + '</svg>';
   }
@@ -2995,12 +3025,14 @@ html { background: var(--bg); }
     single: { L: { el: [-14, 252], hd: [52, 298], bic: null }, R: { el: [204, 214], hd: [214, 124], bic: [196, 192] }, tors: 0, stance: 0, wink: 1 },
     victory: { L: { el: [14, 134], hd: [-8, 66], bic: null }, tors: 0, stance: 6 }
   };
-  var FBODY = function (pose) {
+  var FBODY = function (pose, bf, nofire) {
     var P = FPOSES[pose] || FPOSES.biceps;
+    var f = fOf(bf), fat = Math.max(0, f), lean = Math.max(0, -f);
+    var armW = n1(30 + 11 * fat + 5 * lean), foreW = n1(28 + 7 * fat + 4 * lean), delt = n1(40 + 6 * fat + 10 * lean), bicR = n1(20 + 11 * lean + 3 * fat);
     var skin = '#FFC495', skinD = '#F2A06E', navy = '#1B2A4E', navyD = '#121C38';
     var fire = '';
-    [[-6, 470, 150, 26, 0], [26, 470, 110, 20, .15], [-30, 470, 90, 18, .3], [206, 470, 150, 26, .1], [174, 470, 110, 20, .25], [230, 470, 90, 18, .05]].forEach(function (f) {
-      fire += flameSvg(f[0], f[1], f[2], f[3], f[4], '#FF6B1A', '#FFD23F');
+    if (!nofire) [[-6, 470, 150, 26, 0], [26, 470, 110, 20, .15], [-30, 470, 90, 18, .3], [206, 470, 150, 26, .1], [174, 470, 110, 20, .25], [230, 470, 90, 18, .05]].forEach(function (ff) {
+      fire += flameSvg(ff[0], ff[1], ff[2], ff[3], ff[4], '#FF6B1A', '#FFD23F');
     });
     var mir = function (a) {
       return a ? { el: [200 - a.el[0], a.el[1]], hd: [200 - a.hd[0], a.hd[1]], bic: a.bic ? [200 - a.bic[0], a.bic[1]] : null } : null;
@@ -3009,26 +3041,32 @@ html { background: var(--bg); }
       var S = [sx, 200], v = [a.el[0] - S[0], a.el[1] - S[1]];
       var s1 = [S[0] - 0.12 * v[0], S[1] - 0.12 * v[1] - 2], s2 = [S[0] + 0.22 * v[0], S[1] + 0.22 * v[1]];
       var dir = sx < 100 ? 1 : -1;
-      var h = '<path d="M' + S[0] + ' ' + S[1] + ' L' + a.el[0] + ' ' + a.el[1] + '" stroke="' + skin + '" stroke-width="30" stroke-linecap="round"/>' +
-        '<path d="M' + a.el[0] + ' ' + a.el[1] + ' L' + a.hd[0] + ' ' + (a.hd[1] + 14) + '" stroke="' + skin + '" stroke-width="28" stroke-linecap="round"/>';
-      if (a.bic) h += '<ellipse class="bic" cx="' + a.bic[0] + '" cy="' + a.bic[1] + '" rx="20" ry="17" fill="' + skin + '"/>' +
+      var h = '<path d="M' + S[0] + ' ' + S[1] + ' L' + a.el[0] + ' ' + a.el[1] + '" stroke="' + skin + '" stroke-width="' + armW + '" stroke-linecap="round"/>' +
+        '<path d="M' + a.el[0] + ' ' + a.el[1] + ' L' + a.hd[0] + ' ' + (a.hd[1] + 14) + '" stroke="' + skin + '" stroke-width="' + foreW + '" stroke-linecap="round"/>';
+      if (a.bic) h += '<ellipse class="bic" cx="' + a.bic[0] + '" cy="' + a.bic[1] + '" rx="' + bicR + '" ry="' + n1(bicR * 0.85) + '" fill="' + skin + '"/>' +
         '<path d="M' + (a.bic[0] - 16 * dir) + ' ' + (a.bic[1] + 4) + ' Q' + a.bic[0] + ' ' + (a.bic[1] - 14) + ' ' + (a.bic[0] + 18 * dir) + ' ' + (a.bic[1] - 2) + '" stroke="' + skinD + '" stroke-width="3" fill="none" stroke-linecap="round"/>';
-      h += '<path d="M' + s1[0] + ' ' + s1[1] + ' L' + s2[0] + ' ' + s2[1] + '" stroke="' + navy + '" stroke-width="40" stroke-linecap="round"/>' +
+      if (lean > 0.3 && a.bic) h += '<path d="M' + (a.bic[0] - 6 * dir) + ' ' + (a.bic[1] + 12) + ' q' + (3 * dir) + ' -10 ' + (-1 * dir) + ' -20" stroke="' + skinD + '" stroke-width="2.5" fill="none" stroke-linecap="round" opacity="' + n1(lean) + '"/>';
+      h += '<path d="M' + s1[0] + ' ' + s1[1] + ' L' + s2[0] + ' ' + s2[1] + '" stroke="' + navy + '" stroke-width="' + delt + '" stroke-linecap="round"/>' +
         '<circle cx="' + a.hd[0] + '" cy="' + a.hd[1] + '" r="18" fill="' + skin + '"/>' +
         '<path d="M' + (a.hd[0] - 10) + ' ' + (a.hd[1] - 6) + ' h20 M' + (a.hd[0] - 8) + ' ' + (a.hd[1] + 3) + ' h16" stroke="' + skinD + '" stroke-width="3" stroke-linecap="round"/>';
       return h;
     };
     var L = P.L, R = P.R || mir(P.L);
+    var sw = 14 * lean + 8 * fat, wb = 20 * fat - 16 * lean;
     var torso = P.tors
-      ? '<path d="M14 204 C16 174 58 166 100 166 C142 166 184 174 186 204 L152 304 H48 Z" fill="' + navy + '"/>'
-      : '<path d="M30 192 C30 172 60 166 100 166 C140 166 170 172 170 192 L150 304 H50 Z" fill="' + navy + '"/>';
+      ? '<path d="M' + n1(14 - sw) + ' 204 C' + n1(16 - sw) + ' 174 58 166 100 166 C142 166 ' + n1(184 + sw) + ' 174 ' + n1(186 + sw) + ' 204 L' + n1(152 + wb) + ' 304 H' + n1(48 - wb) + ' Z" fill="' + navy + '"/>'
+      : '<path d="M' + n1(30 - sw) + ' 192 C' + n1(30 - sw) + ' 172 60 166 100 166 C140 166 ' + n1(170 + sw) + ' 172 ' + n1(170 + sw) + ' 192 L' + n1(150 + wb) + ' 304 H' + n1(50 - wb) + ' Z" fill="' + navy + '"/>';
+    if (fat > 0.05) torso += (fat > 0.45 ? '<ellipse cx="100" cy="' + n1(300 + 10 * fat) + '" rx="' + n1(30 + 34 * fat) + '" ry="30" fill="' + skin + '"/>' : '') +
+      '<ellipse cx="100" cy="' + n1(284 + 6 * fat) + '" rx="' + n1(54 + 32 * fat) + '" ry="' + n1(28 + 12 * fat) + '" fill="' + navy + '"/>' +
+      (fat > 0.45 ? '<circle cx="100" cy="' + n1(337 + 6 * fat) + '" r="2.5" fill="' + skinD + '"/>' : '');
+    if (lean > 0.35) torso += '<path d="M100 188 Q78 204 66 196 M100 188 Q122 204 134 196" stroke="' + navyD + '" stroke-width="3" fill="none" stroke-linecap="round" opacity="' + n1(lean) + '"/>';
     var st = P.stance;
     var leg = function (x, rot, px) {
-      return '<g transform="rotate(' + rot + ' ' + px + ' 330)"><rect x="' + x + '" y="330" width="32" height="112" rx="14" fill="' + skin + '"/>' +
+      return '<g transform="rotate(' + rot + ' ' + px + ' 330)"><rect x="' + n1(x - 3 * fat) + '" y="330" width="' + n1(32 + 6 * fat) + '" height="112" rx="14" fill="' + skin + '"/>' +
         (x < 100 ? '<path d="M52 440 Q52 432 62 432 H96 V462 H58 Q52 462 52 456Z" fill="#fff" stroke="#D5DAE3" stroke-width="2"/><rect x="52" y="456" width="44" height="8" rx="4" fill="#FF6B57"/>'
           : '<path d="M148 440 Q148 432 138 432 H104 V462 H142 Q148 462 148 456Z" fill="#fff" stroke="#D5DAE3" stroke-width="2"/><rect x="104" y="456" width="44" height="8" rx="4" fill="#FF6B57"/>') + '</g>';
     };
-    var face = '<use href="#av-hd"/><use href="#av-ey"/>';
+    var face = jHead(f) + '<use href="#av-ey"/>';
     if (P.grit) face += '<path d="M52 66 L94 80" stroke="#6B4630" stroke-width="10" stroke-linecap="round"/><path d="M148 66 L106 80" stroke="#6B4630" stroke-width="10" stroke-linecap="round"/>' +
       '<rect x="78" y="136" width="44" height="18" rx="7" fill="#fff" stroke="#6B1A26" stroke-width="3"/><path d="M89 136 V154 M100 136 V154 M111 136 V154" stroke="#C9CFDB" stroke-width="2"/>';
     else face += '<use href="#av-mo-big"/>';
@@ -3038,7 +3076,7 @@ html { background: var(--bg); }
       '<path d="M56 296 H144 L150 372 H104 L100 340 L96 372 H50 Z" fill="#2B3A55"/><rect x="56" y="292" width="88" height="12" rx="5" fill="' + navy + '"/>' +
       '<path d="M56 318 L52 372 M144 318 L148 372" stroke="#FF6B57" stroke-width="5" stroke-linecap="round"/>' +
       torso +
-      '<rect x="82" y="148" width="36" height="34" rx="12" fill="' + skinD + '"/>' +
+      '<rect x="' + n1(82 - 5 * fat) + '" y="148" width="' + n1(36 + 10 * fat) + '" height="34" rx="12" fill="' + skinD + '"/>' +
       '<path d="M80 168 Q100 204 120 168 Z" fill="' + skinD + '"/>' +
       '<path d="M76 166 L100 198 L84 206 L64 178 Z M124 166 L100 198 L116 206 L136 178 Z" fill="' + navy + '" stroke="' + navyD + '" stroke-width="2.5" stroke-linejoin="round"/>' +
       '<path d="M100 198 V250" stroke="' + navyD + '" stroke-width="3"/><circle cx="100" cy="214" r="2.5" fill="' + navyD + '"/><circle cx="100" cy="232" r="2.5" fill="' + navyD + '"/>' +
