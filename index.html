@@ -2221,13 +2221,14 @@ html { background: var(--bg); }
   function dishById(id) { for (var i = 0; i < DISHES.length; i++) if (DISHES[i].id === id) return DISHES[i]; return null; }
   function isTrain(i) { return i === 0 || i === 2 || i === 4; }
 
-  // Mifflin-St Jeor, activity factor 1.5, about 450 kcal below maintenance. Lifting days get a bit more.
+  // 2000 kcal on lifting days, 1800 on the other days. Protein 1.8 g per kg, fat 0.7 g per kg, carbs fill the rest.
+  // Mifflin-St Jeor with activity factor 1.5 is only used to show the estimated maintenance.
   function nutriTargets(train) {
     var bmr = 10 * bodyKg + 6.25 * HEIGHT_CM - 5 * AGE_Y + 5;
-    var tdee = bmr * 1.5;
-    var kcal = Math.round((tdee - 450 + (train ? 150 : -100)) / 10) * 10;
-    var p = Math.round(2 * bodyKg / 5) * 5;
-    var f = Math.round(0.9 * bodyKg / 5) * 5;
+    var tdee = bmr * 1.35;
+    var kcal = train ? 2000 : 1800;
+    var p = Math.round(1.8 * bodyKg / 5) * 5;
+    var f = Math.round(0.7 * bodyKg / 5) * 5;
     var c = Math.max(0, Math.round((kcal - p * 4 - f * 9) / 20) * 5);
     return { bmr: Math.round(bmr), tdee: Math.round(tdee), kcal: kcal, p: p, c: c, f: f };
   }
@@ -2526,7 +2527,7 @@ html { background: var(--bg); }
     }).join('') + '</div>';
     var html = '<div>' + chips +
       '<p class="line"><b>' + (isTrain(nutDay) ? 'Lifting day' : 'Rest or cardio day') + '</b>: ' +
-      (isTrain(nutDay) ? 'a bit more carbs to fuel the session and recovery.' : 'a bit fewer calories, protein stays the same.') + '</p>' +
+      (isTrain(nutDay) ? '2000 kcal, 200 more than on rest days. Eat your carbs around the session.' : '1800 kcal, protein stays high.') + '</p>' +
       bar(ea.kcal, T.kcal, 'Calories') + bar(ea.p, T.p, 'Protein') +
       '<p class="fine">Left today: ' + Math.max(0, T.kcal - ea.kcal) + ' kcal and ' + Math.max(0, T.p - ea.p) + ' g protein.</p><p class="fine">Daily target: ' + T.kcal + ' kcal, ' + T.p + ' g protein, about ' + T.c + ' g carbs and ' + T.f + ' g fat. Tick a meal when you eat it.</p></div>';
 
@@ -2545,8 +2546,8 @@ html { background: var(--bg); }
 
     html += customHtml(c);
 
-    html += '<div><h3>How this is worked out</h3><p class="fine">Estimates only. Your body weight of ' + fmtN(bodyKg) + ' kg, 1.78 m and 36 years give about ' + T.bmr + ' kcal at rest (Mifflin-St Jeor). With a moderately active week (x1.5) that is about ' + T.tdee +
-      ' kcal, and the plan sits roughly 450 kcal below that for slow fat loss. Protein is 2 g per kg, in the 1.6 to 2.2 g per kg range often recommended for lifters who are cutting. Dishes are simple, use no pork, and the meals scale in quarter portions to fit the day. Check with a doctor or dietitian if you have a health condition.</p></div>';
+    html += '<div><h3>How this is worked out</h3><p class="fine">Estimates only. Your body weight of ' + fmtN(bodyKg) + ' kg, 1.78 m and 36 years give about ' + T.bmr + ' kcal at rest (Mifflin-St Jeor). With a lightly active week (x1.35) that is about ' + T.tdee +
+      ' kcal, and the plan is ' + T.kcal + ' kcal today, about ' + Math.max(0, T.tdee - T.kcal) + ' kcal below that. Lifting days (Mon, Wed, Fri) get 2000 kcal, all other days 1800. Protein is 1.8 g per kg, in the 1.6 to 2.2 g per kg range often recommended for lifters who are cutting. Dishes are simple, use no pork, and the meals scale in quarter portions to fit the day. Check with a doctor or dietitian if you have a health condition.</p></div>';
     el.nutrition.innerHTML = html;
   }
   /* ===== NUTRITION BLOCK END ===== */
