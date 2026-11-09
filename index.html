@@ -1523,6 +1523,13 @@ html { background: var(--bg); }
   }
   // How far your logged weights sat from the suggestions in your most recent logged week before wk.
   function calibBefore(wk) {
+    // Lifts you already logged this week count first, so going lighter on one lift lowers the suggestions for the others.
+    var cur = logs[wk] || {}, cr = [];
+    Object.keys(cur).forEach(function (n) {
+      var w = +cur[n], b = baseFor(n, 1);
+      if (SPEC[n] && w > 0 && b > 0) cr.push(w / b);
+    });
+    if (cr.length) return Math.min(1.25, Math.max(0.75, cr.reduce(function (t, x) { return t + x; }, 0) / cr.length));
     var keys = Object.keys(logs).filter(function (k) { return k < wk; }).sort();
     for (var i = keys.length - 1; i >= 0; i--) {
       var o = logs[keys[i]] || {}, r = recs[keys[i]] || {}, ratios = [];
@@ -3393,6 +3400,14 @@ html { background: var(--bg); }
       }
       var h = document.getElementById('wh-' + id);
       if (h) h.textContent = hintFor(name);
+      // Other lifts you have not logged yet follow your new weight, so refresh their suggestions.
+      Array.prototype.forEach.call(document.querySelectorAll('.wtin'), function (o) {
+        if (o.value) return;
+        var sg = recFor(o.getAttribute('data-name'), wk);
+        if (sg) o.placeholder = fmtN(sg);
+        var oh = document.getElementById('wh-' + o.getAttribute('data-id'));
+        if (oh) oh.textContent = hintFor(o.getAttribute('data-name'));
+      });
       save();
       renderProgress();
     } else if (t.id === 'startkg') {
