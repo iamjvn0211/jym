@@ -1271,6 +1271,7 @@ html { background: var(--bg); }
   var done = {};
   var logs = {};
   var recs = {};
+  var cel = {};
   var level = 'medium';
   var chartLift = null;
   var bodyKg = 90;
@@ -1994,6 +1995,10 @@ html { background: var(--bg); }
     if (isBonus(a)) { toast('Bonus done. About +' + round5(kcalFor(a)) + ' kcal extra.'); return true; }
     var dayActs = plan.filter(function (x) { return x.day === a.day && !isBonus(x); });
     if (!dayActs.every(function (x) { return dn[x.id]; })) return false;
+    var ck = k + '|' + a.day;
+    if (cel[ck]) { toast('Session already counted for this day. It only counts once.'); return true; }
+    cel[ck] = 1;
+    save();
     var kc = dayActs.reduce(function (s, x) { return s + kcalFor(x); }, 0);
     var msg = 'Session done. About ' + fmtKcal(round5(kc)) + ' kcal burned.';
     if (weekInfo(k).full) {
@@ -2790,7 +2795,7 @@ html { background: var(--bg); }
   var cloudFailed = false;
   var saving = false, dirty = false, saveTimer = null;
 
-  function serialize() { return { v: 9, pv: 2, seen: seen, startKg: startKg, startFat: startFat, plan: plan, done: done, logs: logs, recs: recs, level: level, body: bodyKg, weigh: weigh, goalKg: goalKg, goalMonths: goalMonths, nutri: nutriSerialize() }; }
+  function serialize() { return { v: 9, pv: 2, cel: cel, seen: seen, startKg: startKg, startFat: startFat, plan: plan, done: done, logs: logs, recs: recs, level: level, body: bodyKg, weigh: weigh, goalKg: goalKg, goalMonths: goalMonths, nutri: nutriSerialize() }; }
   function apply(data) {
     coreCache = null;
     if (!data || typeof data !== 'object') return;
@@ -2801,6 +2806,7 @@ html { background: var(--bg); }
     if ((data.v | 0) < 6) bodyKg = 90;
     else if (bw >= 30 && bw <= 250) bodyKg = bw;
     if (data.recs && typeof data.recs === 'object') recs = data.recs;
+    cel = data.cel && typeof data.cel === 'object' ? data.cel : {};
     if (data.weigh && typeof data.weigh === 'object') {
       var wc = {};
       Object.keys(data.weigh).forEach(function (k) {
@@ -2860,6 +2866,15 @@ html { background: var(--bg); }
         });
         done = kept;
       }
+    }
+    if (!data.cel) {
+      // Older saves: sessions already finished count as celebrated, so they are not celebrated a second time.
+      Object.keys(done).forEach(function (wk) {
+        for (var di = 0; di < 7; di++) {
+          var core = plan.filter(function (x) { return x.day === di && !isBonus(x); });
+          if (core.length && core.every(function (x) { return (done[wk] || {})[x.id]; })) cel[wk + '|' + di] = 1;
+        }
+      });
     }
   }
   function setStatus(t) { statusText = t; var se = document.getElementById('set-status'); if (se) se.textContent = t; }
