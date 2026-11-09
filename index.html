@@ -640,6 +640,15 @@ html { background: var(--bg); }
 .spb::after { content: ""; position: absolute; right: -7px; top: 50%; margin-top: -7px; border: 7px solid transparent; border-left-color: #fff; border-right: 0; }
 @keyframes spop { 0% { transform: translateY(105%) scale(.8); opacity: 0; } 16% { transform: translateY(-5%) scale(1.05); opacity: 1; } 26% { transform: none; } 80% { transform: none; opacity: 1; } 100% { transform: translateY(70%) scale(.9); opacity: 0; } }
 .bonushead.stretchhead { margin-top: 10px; color: #0E8F6B; }
+
+.lane { position: relative; display: flex; gap: 8px; overflow-x: auto; margin: 10px -2px 0; padding: 2px 2px 6px; scroll-snap-type: x proximity; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+.lane::-webkit-scrollbar { display: none; }
+.dc { flex: 0 0 132px; scroll-snap-align: start; display: flex; flex-direction: column; gap: 2px; text-align: left; font: inherit; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 9px 10px; cursor: pointer; min-width: 0; }
+.dc .dn { font-weight: 600; font-size: 13px; line-height: 1.25; min-height: 33px; }
+.dc .dm { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.dc .dp { margin-top: 4px; font-size: 11px; font-weight: 600; color: var(--grn); }
+.dc.sel { border-color: var(--grn); background: var(--grn-bg); box-shadow: inset 0 0 0 1px var(--grn); }
+.dc:focus-visible { outline: 2px solid var(--acc); outline-offset: 2px; }
 </style>
 </head>
 <body>
@@ -2560,7 +2569,21 @@ html { background: var(--bg); }
       '<div class="nbar" role="img" aria-label="' + label + ' ' + pct + ' percent of target"><i style="width:' + pct + '%"></i></div>';
   }
 
+  // One swipeable lane of dishes per meal. Each card shows the dish at the portion that fits today.
+  function laneHtml(c, it) {
+    var si = SLOTS.indexOf(it.slot);
+    var cards = DISHES.filter(function (d) { return d.pool === it.slot.pool; }).map(function (d) {
+      var ids2 = c.day.ids.slice(); ids2[si] = d.id;
+      var x = planFor(ids2, c.T.kcal).items[si], sel = d.id === it.dish.id;
+      return '<button type="button" class="dc' + (sel ? ' sel' : '') + '" data-act="npick" data-slot="' + it.slot.k + '" data-id="' + d.id + '" aria-pressed="' + sel + '">' +
+        '<span class="dn">' + esc(d.name) + '</span><span class="dm">' + x.kcal + ' kcal</span><span class="dm">' + x.p + ' g protein</span>' + (sel ? '<span class="dp">Your pick</span>' : '') + '</button>';
+    }).join('');
+    return '<div class="lane" data-slot="' + it.slot.k + '" role="group" aria-label="' + esc(it.slot.label) + ' options">' + cards + '</div>';
+  }
+
   function renderNutrition() {
+    var laneX = {};
+    if (!el['panel-nutrition'].hidden) Array.prototype.forEach.call(el.nutrition.querySelectorAll('.lane'), function (l) { laneX[l.getAttribute('data-slot')] = l.scrollLeft; });
     renderHead(); renderWelcome(); renderGame();
     var c = curNutri(), T = c.T, pl = c.pl, ea = eatenTot(c);
     var names = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -2580,17 +2603,22 @@ html { background: var(--bg); }
         '<div class="mtx"><span class="ml">' + esc(it.slot.label) + '</span><b>' + esc(it.dish.name) + (it.mult !== 1 ? ' <i>× ' + multText(it.mult) + ' portion</i>' : '') + '</b>' +
         '<span class="mm">' + it.kcal + ' kcal · ' + it.p + ' g protein · ' + it.c + ' g carbs · ' + it.f + ' g fat</span></div>' +
         '<button type="button" class="ghost mhow" data-act="nhow" data-id="' + it.slot.k + '" aria-expanded="' + open + '">' + (open ? 'Hide' : 'Recipe') + '</button></div>' +
+        laneHtml(c, it) +
         (open ? '<div class="mdet"><p><b>Ingredients (1 portion' + (it.mult !== 1 ? ', multiply by ' + multText(it.mult) : '') + ')</b><br>' + esc(it.dish.ing) + '</p><p><b>How</b><br>' + esc(it.dish.how) + '</p></div>' : '') +
         '</li>';
     }).join('') + '</ul>' +
-      '<p class="fine">Plan total: ' + pl.tot.kcal + ' kcal, ' + pl.tot.p + ' g protein, ' + pl.tot.c + ' g carbs, ' + pl.tot.f + ' g fat.</p>' +
-      '<div class="editextra"><button type="button" class="ghost" data-act="nshuf">Shuffle this day</button></div></div>';
+      '<p class="fine">Plan total: ' + pl.tot.kcal + ' kcal, ' + pl.tot.p + ' g protein, ' + pl.tot.c + ' g carbs, ' + pl.tot.f + ' g fat. Swipe a row sideways and tap a dish to switch it. Portions scale to the day\'s target.</p></div>';
 
     html += customHtml(c);
 
     html += '<div><h3>How this is worked out</h3><p class="fine">Estimates only. Your body weight of ' + fmtN(bodyKg) + ' kg, 1.78 m and 36 years give about ' + T.bmr + ' kcal at rest (Mifflin-St Jeor). With a lightly active week (x1.35) that is about ' + T.tdee +
       ' kcal, and the plan is ' + T.kcal + ' kcal today, about ' + Math.max(0, T.tdee - T.kcal) + ' kcal below that. Lifting days (Mon, Wed, Fri) get 2000 kcal, all other days 1800. Protein is 1.8 g per kg, in the 1.6 to 2.2 g per kg range often recommended for lifters who are cutting. Dishes are simple, use no pork, and the meals scale in quarter portions to fit the day. Check with a doctor or dietitian if you have a health condition.</p></div>';
     el.nutrition.innerHTML = html;
+    Array.prototype.forEach.call(el.nutrition.querySelectorAll('.lane'), function (l) {
+      var k = l.getAttribute('data-slot'), sel = l.querySelector('.dc.sel');
+      if (laneX[k] != null) l.scrollLeft = laneX[k];
+      else if (sel) l.scrollLeft = Math.max(0, sel.offsetLeft - 12);
+    });
   }
   /* ===== NUTRITION BLOCK END ===== */
   /* ===== WELCOME BACK ===== */
@@ -3365,10 +3393,16 @@ html { background: var(--bg); }
     else if (act === 'nmine') { var mm = (nutri.mine || [])[+t.getAttribute('data-i')]; if (mm) logExtra({ n: mm.n, t: mm.t, kcal: mm.kcal, p: mm.p, c: mm.c, f: mm.f }); }
     else if (act === 'nxdel') { var cx = curNutri(); (cx.day.extra || []).splice(+t.getAttribute('data-i'), 1); save(); renderNutrition(); }
     else if (act === 'nhow') { var ns = t.getAttribute('data-id'); nutOpen = nutOpen === ns ? null : ns; renderNutrition(); }
-    else if (act === 'nshuf') {
-      var nc = curNutri();
-      nutri.days[nc.key] = { ids: genIds(nc.T), eaten: {}, extra: nc.day.extra || [] };
-      nutOpen = null; save(); renderNutrition();
+    else if (act === 'npick') {
+      var pc = curNutri(), ps = t.getAttribute('data-slot'), pid = t.getAttribute('data-id'), pi = -1;
+      SLOTS.forEach(function (sl, ix) { if (sl.k === ps) pi = ix; });
+      var pd = dishById(pid);
+      if (pi >= 0 && pd && pd.pool === SLOTS[pi].pool && pc.day.ids[pi] !== pid) {
+        pc.day.ids[pi] = pid;
+        delete pc.day.eaten[ps];
+        save();
+      }
+      renderNutrition();
     }
     else if (act === 'neat') {
       var ne = curNutri(), sk = t.getAttribute('data-id'), before = eatenTot(ne).p;
@@ -3506,6 +3540,7 @@ html { background: var(--bg); }
       if (window.scrollTo) { try { window.scrollTo(0, 0); } catch (e) {} }
     }
     renderHead();
+    if (tab === 'nutrition' && prevTab !== 'nutrition') renderNutrition();
     if (tab === 'welcome' && prevTab !== 'welcome') fxWelcome();
   }
   TABS.forEach(function (n) {
