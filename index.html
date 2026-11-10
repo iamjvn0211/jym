@@ -1854,8 +1854,8 @@ html { background: var(--bg); }
       '<div class="weeks" aria-label="Last 8 weeks">' + weeks + '</div>' +
       '<p class="fine">This week: ' + dc.comp + ' of ' + dc.planned + ' strength days complete. Tuesday, Thursday, Saturday and the bonus exercises are optional extras that never count against you.</p></div>';
 
-    var sk = sessionStreak(), recent = sk.list.filter(function (x) { return x.st !== 'next'; }).slice(-5), nxt = sk.list.filter(function (x) { return x.st === 'next'; })[0];
-    if (nxt) recent.push(nxt);
+    var sk = sessionStreak(), wkMon = iso(mondayOf(new Date())), wkSun = iso(addDays(mondayOf(new Date()), 6)),
+      recent = sk.list.filter(function (x) { return x.date >= wkMon && x.date <= wkSun; });
     var DN = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'], sstrip = '';
     recent.forEach(function (x) {
       var dd = fromIso(x.date), lab = DN[x.d] + ' ' + dd.getDate(), ic = x.st === 'done' ? '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>' : x.st === 'missed' ? '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7l10 10M17 7L7 17"/></svg>' : '';
@@ -1864,8 +1864,8 @@ html { background: var(--bg); }
     var skTxt = sk.cur === 0 ? 'Finish your next strength session to start a streak.' : sk.cur === 1 ? 'Nice start. Keep showing up.' : 'Miss a session and it starts again.';
     html += '<div><h3>Session streak</h3><div class="sstreak"><svg width="34" height="42" viewBox="0 0 52 64" aria-hidden="true"><path d="M26 2C28 14 46 22 46 42a20 20 0 0 1-40 0C6 32 12 26 16 20c1 6 4 9 7 9C22 18 22 10 26 2Z" fill="#EA580C"/><path d="M26 30c2 7 10 10 10 19a10 10 0 0 1-20 0c0-6 4-9 6-12 1 3 2 4 4 4-1-4-1-7 0-11Z" fill="#FDBA3B"/></svg>' +
       '<span class="big">' + sk.cur + '</span><div><b>' + (sk.cur === 1 ? 'session in a row' : 'sessions in a row') + '</b><span class="s">Best: ' + sk.best + '. ' + skTxt + '</span></div></div>' +
-      '<div class="ssrow" aria-label="Recent strength sessions">' + sstrip + '</div>' +
-      '<p class="fine">Only your Monday, Wednesday and Friday strength sessions count. Rest days and bonus days never add to it or break it.</p></div>';
+      '<div class="ssrow" aria-label="This week\'s strength sessions">' + sstrip + '</div>' +
+      '<p class="fine">The circles start fresh every Monday. Your streak keeps counting across weeks. Only Monday, Wednesday and Friday sessions count. Rest days and bonus days never add to it or break it.</p></div>';
 
     html += '<div><h3>Energy</h3><div class="rows">' +
       '<div class="r"><span>Burned this week</span><b>' + fmtKcal(b.base + b.extra) + ' kcal</b></div>' +
