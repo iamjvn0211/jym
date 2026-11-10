@@ -1679,7 +1679,7 @@ html { background: var(--bg); }
   function daysComplete(k) {
     var dn = done[k] || {}, t = [0, 0, 0, 0, 0, 0, 0], c = [0, 0, 0, 0, 0, 0, 0], planned = 0, comp = 0, i;
     plan.forEach(function (a) { if (isBonus(a)) return; t[a.day]++; if (dn[a.id]) c[a.day]++; });
-    for (i = 0; i < 7; i++) if (t[i]) { planned++; if (c[i] === t[i]) comp++; }
+    for (i = 0; i < 7; i++) if (t[i] && isTrain(i)) { planned++; if (c[i] === t[i]) comp++; }
     return { planned: planned, comp: comp };
   }
 
