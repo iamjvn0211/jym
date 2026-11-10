@@ -2039,7 +2039,7 @@ html { background: var(--bg); }
     html += '<div><h3>Voiceover</h3><div class="seg" role="group" aria-label="Voiceover">' +
       '<button type="button" data-act="vo" data-id="on" aria-pressed="' + voLive + '">On</button>' +
       '<button type="button" data-act="vo" data-id="off" aria-pressed="' + !voLive + '">Off</button></div>' +
-      '<p class="fine">Reads the welcome line and the 17:00 reminder out loud in an Australian accent, using your phone\'s own voice. Your phone may only allow sound after you have tapped something in the app. Turn it on and you will hear a short test. This setting is per device and is not part of the backup.</p></div>';
+      '<p class="fine">Reads the welcome line and the 17:00 reminder out loud in a British accent (Google UK English Female for Yesim, Male for Jan) when your device has those voices, otherwise the closest English voice it has. Your phone may only allow sound after you have tapped something in the app. Turn it on and you will hear a short test. This setting is per device and is not part of the backup.</p></div>';
     var chMode = 'both';
     try { chMode = localStorage.getItem('jym:ch') || 'both'; } catch (e) {}
     html += '<div><h3>Characters</h3><div class="seg" role="group" aria-label="Characters">' +
@@ -3326,6 +3326,12 @@ html { background: var(--bg); }
   function pickVoice(who) {
     var vs = [];
     try { vs = window.speechSynthesis.getVoices() || []; } catch (e) {}
+    // Preferred: Google UK English Female for Yesim, Google UK English Male for Jan.
+    var pref = vs.filter(function (v) { return new RegExp('Google UK English ' + (who === 'yes' ? 'Female' : 'Male'), 'i').test(v.name); })[0];
+    if (pref) return pref;
+    var gb = vs.filter(function (v) { return /^en[-_]GB$/i.test(v.lang); }), gbw = who === 'yes' ? /female|kate|serena|martha|stephanie/i : /male|daniel|oliver|arthur/i;
+    var gbHit = gb.filter(function (v) { return gbw.test(v.name) && (who === 'yes' ? !/^male|\bmale\b/i.test(v.name.replace(/female/i, '')) : !/female/i.test(v.name)); })[0];
+    if (gbHit) return gbHit;
     var au = vs.filter(function (v) { return /^en[-_]AU$/i.test(v.lang); });
     if (!au.length) au = vs.filter(function (v) { return /Australia/i.test(v.name) || /^en[-_]AU/i.test(v.lang); });
     if (!au.length) return null;
@@ -3339,7 +3345,7 @@ html { background: var(--bg); }
       var ss = window.speechSynthesis;
       ss.cancel();
       var u = new SpeechSynthesisUtterance(String(text).replace(/\s+/g, ' '));
-      u.lang = 'en-AU';
+      u.lang = 'en-GB';
       var v = pickVoice(who);
       if (v) { u.voice = v; u.lang = v.lang; }
       u.rate = 1; u.pitch = who === 'yes' ? 1.15 : 0.9; u.volume = 1;
@@ -3471,7 +3477,7 @@ html { background: var(--bg); }
       var von = t.getAttribute('data-id') === 'on';
       try { localStorage.setItem('jym:vo', von ? '1' : '0'); } catch (er) {}
       renderSettings();
-      if (von) speak('G\'day Jan. Let\'s get after it.', 'yes'); else stopSpeak();
+      if (von) speak('Hello Jan. Let\'s get after it.', 'yes'); else stopSpeak();
     }
     else if (act === 'chr') {
       var cm = t.getAttribute('data-id');
