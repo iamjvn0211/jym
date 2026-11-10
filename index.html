@@ -649,6 +649,32 @@ html { background: var(--bg); }
 .dc .dp { margin-top: 4px; font-size: 11px; font-weight: 600; color: var(--grn); }
 .dc.sel { border-color: var(--grn); background: var(--grn-bg); box-shadow: inset 0 0 0 1px var(--grn); }
 .dc:focus-visible { outline: 2px solid var(--acc); outline-offset: 2px; }
+
+.sstreak { display: flex; align-items: center; gap: 12px; margin-top: 8px; }
+.sstreak .big { font-family: var(--font-display); font-weight: 600; font-size: 48px; line-height: 1; color: var(--org, #C2410C); font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+.sstreak b { display: block; font-size: 15px; }
+.sstreak .s { display: block; font-size: 13px; color: var(--muted); }
+.ssrow { display: flex; gap: 10px; margin-top: 12px; }
+.sscell { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.sscell em { font-style: normal; font-size: 11px; color: var(--muted); white-space: nowrap; }
+.ssd { width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid var(--line); box-sizing: border-box; }
+.ssd svg { width: 16px; height: 16px; fill: none; stroke: #fff; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+.ssd.done { background: var(--acc); border-color: var(--acc); }
+.ssd.done svg { stroke: var(--onacc); }
+.ssd.missed { border-color: var(--org, #C2410C); }
+.ssd.missed svg { stroke: var(--org, #C2410C); }
+.ssd.open { border-color: var(--acc); border-style: dashed; }
+.ssd.next { border-style: dashed; }
+#nudge { position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center; padding: 24px; background: rgba(8, 12, 24, .55); }
+#nudge .nc { width: min(340px, 100%); background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 22px; padding: 18px 20px 18px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 8px; box-shadow: 0 18px 50px rgba(0, 0, 0, .35); }
+#nudge .na { width: 150px; height: 150px; border-radius: 50%; background: var(--org-bg, #FFEFE0); overflow: hidden; display: flex; align-items: flex-end; justify-content: center; }
+#nudge .na svg { width: 150px; height: auto; display: block; margin-bottom: -8px; }
+#nudge h2 { margin: 4px 0 0; font-size: 20px; line-height: 1.2; }
+#nudge p { margin: 0; color: var(--muted); font-size: 15px; line-height: 1.45; }
+#nudge .nb { display: flex; flex-direction: column; gap: 8px; width: 100%; margin-top: 8px; }
+#nudge button { font: inherit; min-height: 48px; border-radius: 14px; font-weight: 700; cursor: pointer; border: 1px solid var(--line); background: transparent; color: var(--ink); }
+#nudge button.go { background: var(--acc); border-color: var(--acc); color: var(--onacc); font-size: 16px; }
+@media (prefers-reduced-motion: no-preference) { #nudge .nc { animation: cardin .45s cubic-bezier(.2, 1.4, .4, 1) both; } }
 </style>
 </head>
 <body>
@@ -1667,6 +1693,29 @@ html { background: var(--bg); }
     return { cur: cur, max: max };
   }
 
+  // Session streak: strength sessions in a row. Rest days and bonus days neither add nor break it.
+  function sessionList() {
+    var out = [], tk = iso(new Date()), cm = coreMap(), endK = iso(addDays(mondayOf(new Date()), 6));
+    for (var w = fromIso(START); iso(w) <= endK; w = addDays(w, 7)) {
+      var k = iso(w), dn = done[k] || {};
+      for (var d = 0; d < 7; d++) {
+        if (!cm[d]) continue;
+        var acts = plan.filter(function (a) { return a.day === d && !isBonus(a); });
+        if (!acts.length) continue;
+        var dk = iso(addDays(w, d)), all = acts.every(function (a) { return dn[a.id]; });
+        out.push({ date: dk, d: d, st: all ? 'done' : dk < tk ? 'missed' : dk === tk ? 'open' : 'next' });
+      }
+    }
+    return out;
+  }
+  function sessionStreak() {
+    var l = sessionList(), cur = 0, best = 0;
+    l.forEach(function (s) {
+      if (s.st === 'done') { cur++; if (cur > best) best = cur; } else if (s.st === 'missed') cur = 0;
+    });
+    return { cur: cur, best: best, list: l };
+  }
+
   function burn(k) {
     var dn = done[k] || {}, base = 0, extra = 0, n = 0;
     plan.forEach(function (a) {
@@ -1804,6 +1853,19 @@ html { background: var(--bg); }
       '</span></div></div>' +
       '<div class="weeks" aria-label="Last 8 weeks">' + weeks + '</div>' +
       '<p class="fine">This week: ' + dc.comp + ' of ' + dc.planned + ' strength days complete. Tuesday, Thursday, Saturday and the bonus exercises are optional extras that never count against you.</p></div>';
+
+    var sk = sessionStreak(), recent = sk.list.filter(function (x) { return x.st !== 'next'; }).slice(-5), nxt = sk.list.filter(function (x) { return x.st === 'next'; })[0];
+    if (nxt) recent.push(nxt);
+    var DN = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'], sstrip = '';
+    recent.forEach(function (x) {
+      var dd = fromIso(x.date), lab = DN[x.d] + ' ' + dd.getDate(), ic = x.st === 'done' ? '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>' : x.st === 'missed' ? '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7l10 10M17 7L7 17"/></svg>' : '';
+      sstrip += '<span class="sscell"><span class="ssd ' + x.st + '" role="img" aria-label="' + lab + ': ' + (x.st === 'done' ? 'done' : x.st === 'missed' ? 'missed' : x.st === 'open' ? 'open today' : 'coming up') + '">' + ic + '</span><em>' + lab + '</em></span>';
+    });
+    var skTxt = sk.cur === 0 ? 'Finish your next strength session to start a streak.' : sk.cur === 1 ? 'Nice start. Keep showing up.' : 'Miss a session and it starts again.';
+    html += '<div><h3>Session streak</h3><div class="sstreak"><svg width="34" height="42" viewBox="0 0 52 64" aria-hidden="true"><path d="M26 2C28 14 46 22 46 42a20 20 0 0 1-40 0C6 32 12 26 16 20c1 6 4 9 7 9C22 18 22 10 26 2Z" fill="#EA580C"/><path d="M26 30c2 7 10 10 10 19a10 10 0 0 1-20 0c0-6 4-9 6-12 1 3 2 4 4 4-1-4-1-7 0-11Z" fill="#FDBA3B"/></svg>' +
+      '<span class="big">' + sk.cur + '</span><div><b>' + (sk.cur === 1 ? 'session in a row' : 'sessions in a row') + '</b><span class="s">Best: ' + sk.best + '. ' + skTxt + '</span></div></div>' +
+      '<div class="ssrow" aria-label="Recent strength sessions">' + sstrip + '</div>' +
+      '<p class="fine">Only your Monday, Wednesday and Friday strength sessions count. Rest days and bonus days never add to it or break it.</p></div>';
 
     html += '<div><h3>Energy</h3><div class="rows">' +
       '<div class="r"><span>Burned this week</span><b>' + fmtKcal(b.base + b.extra) + ' kcal</b></div>' +
@@ -3540,6 +3602,7 @@ html { background: var(--bg); }
       if (window.scrollTo) { try { window.scrollTo(0, 0); } catch (e) {} }
     }
     renderHead();
+    if (tab === 'welcome' && prevTab !== 'welcome') setTimeout(nudgeCheck, 600);
     if (tab === 'nutrition' && prevTab !== 'nutrition') renderNutrition();
   }
   TABS.forEach(function (n) {
@@ -3651,6 +3714,52 @@ html { background: var(--bg); }
     closeForm();
     save(); render();
   });
+
+  /* ---------- 17:00 nudge: strict Yesim when today's strength session has not started ---------- */
+  var NUDGE = [
+    'It is past 17:00 and your session has not started. The bench is waiting. So am I.',
+    'Sunglasses on, excuses off. Go and train.',
+    'Your streak is looking at you. Do not make it cry.',
+    'Do you want to be strong or comfortable? Pick one, then go.',
+    'Five o\'clock. Gym o\'clock. Move it, Jan.'
+  ];
+  function nudgeDue() {
+    try {
+      var d = new Date(), k = iso(d);
+      if (d.getHours() < 17 || k < START || tab !== 'welcome') return false;
+      var i = (d.getDay() + 6) % 7, wk = iso(mondayOf(d));
+      var acts = plan.filter(function (a) { return a.day === i && !isBonus(a); });
+      if (!acts.length || !coreMap()[i]) return false;
+      var dn = done[wk] || {};
+      if (acts.some(function (a) { return dn[a.id]; })) return false;
+      if (localStorage.getItem('jym:nd') === k) return false;
+      if (document.getElementById('nudge') || document.querySelector('#fx .wel:not(.out)')) return false;
+      return true;
+    } catch (e) { return false; }
+  }
+  function showNudge() {
+    try {
+      var d = new Date(), k = iso(d);
+      try { localStorage.setItem('jym:nd', k); } catch (e) {}
+      var n = document.createElement('div');
+      n.id = 'nudge'; n.setAttribute('role', 'dialog'); n.setAttribute('aria-modal', 'true'); n.setAttribute('aria-label', 'Session reminder');
+      var sk = sessionStreak();
+      var line = NUDGE[Math.floor(Math.random() * NUDGE.length)];
+      n.innerHTML = '<div class="nc"><div class="na">' + YCROP('strict', '-44 -40 288 330') + '</div><h2>Today\'s session has not started</h2><p>' + esc(line) +
+        (sk.cur ? ' Your streak is at ' + sk.cur + (sk.cur === 1 ? ' session.' : ' sessions.') : '') + '</p>' +
+        '<div class="nb"><button type="button" class="go">Start the session</button><button type="button" class="later">Later</button></div></div>';
+      var close = function () { if (n.parentNode) n.parentNode.removeChild(n); };
+      n.querySelector('.go').addEventListener('click', function () { close(); showTab('workout'); });
+      n.querySelector('.later').addEventListener('click', close);
+      n.addEventListener('click', function (e) { if (e.target === n) close(); });
+      document.body.appendChild(n);
+      n.querySelector('.go').focus();
+    } catch (e) {}
+  }
+  function nudgeCheck() { if (nudgeDue()) showNudge(); }
+  setInterval(nudgeCheck, 10000);
+  document.addEventListener('visibilitychange', function () { if (!document.hidden) setTimeout(nudgeCheck, 800); });
+  setTimeout(nudgeCheck, 2500); setTimeout(nudgeCheck, 8000);
 
   // The app always opens on Home, whatever the address says.
   showTab('welcome');
