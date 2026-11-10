@@ -1699,7 +1699,7 @@ html { background: var(--bg); }
     for (var w = fromIso(START); iso(w) <= endK; w = addDays(w, 7)) {
       var k = iso(w), dn = done[k] || {};
       for (var d = 0; d < 7; d++) {
-        if (!cm[d]) continue;
+        if (!cm[d] || !isTrain(d)) continue;
         var acts = plan.filter(function (a) { return a.day === d && !isBonus(a); });
         if (!acts.length) continue;
         var dk = iso(addDays(w, d)), all = acts.every(function (a) { return dn[a.id]; });
@@ -3729,7 +3729,7 @@ html { background: var(--bg); }
       if (d.getHours() < 17 || k < START || tab !== 'welcome') return false;
       var i = (d.getDay() + 6) % 7, wk = iso(mondayOf(d));
       var acts = plan.filter(function (a) { return a.day === i && !isBonus(a); });
-      if (!acts.length || !coreMap()[i]) return false;
+      if (!acts.length || !coreMap()[i] || !isTrain(i)) return false;
       var dn = done[wk] || {};
       if (acts.some(function (a) { return dn[a.id]; })) return false;
       if (localStorage.getItem('jym:nd') === k) return false;
