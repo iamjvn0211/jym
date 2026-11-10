@@ -2034,6 +2034,12 @@ html { background: var(--bg); }
       '<button type="button" data-act="fx" data-id="on" aria-pressed="' + fxLive + '">On</button>' +
       '<button type="button" data-act="fx" data-id="off" aria-pressed="' + !fxLive + '">Off</button></div>' +
       '<p class="fine">Confetti, avatar moves and pop-ups when you finish a session or unlock a badge. They never block anything. They stay off automatically if your phone has Reduce Motion turned on. This setting is per device and is not part of the backup.</p></div>';
+    var voLive = true;
+    try { voLive = localStorage.getItem('jym:vo') !== '0'; } catch (e) {}
+    html += '<div><h3>Voiceover</h3><div class="seg" role="group" aria-label="Voiceover">' +
+      '<button type="button" data-act="vo" data-id="on" aria-pressed="' + voLive + '">On</button>' +
+      '<button type="button" data-act="vo" data-id="off" aria-pressed="' + !voLive + '">Off</button></div>' +
+      '<p class="fine">Reads the welcome line and the 17:00 reminder out loud in an Australian accent, using your phone\'s own voice. Your phone may only allow sound after you have tapped something in the app. Turn it on and you will hear a short test. This setting is per device and is not part of the backup.</p></div>';
     var chMode = 'both';
     try { chMode = localStorage.getItem('jym:ch') || 'both'; } catch (e) {}
     html += '<div><h3>Characters</h3><div class="seg" role="group" aria-label="Characters">' +
@@ -3312,6 +3318,37 @@ html { background: var(--bg); }
       }
     } catch (e) {}
   }
+  /* ---------- voiceover: read the line out loud in an Australian accent ---------- */
+  function voiceOn() {
+    try { if (localStorage.getItem('jym:vo') === '0') return false; } catch (e) {}
+    return 'speechSynthesis' in window && typeof SpeechSynthesisUtterance === 'function';
+  }
+  function pickVoice(who) {
+    var vs = [];
+    try { vs = window.speechSynthesis.getVoices() || []; } catch (e) {}
+    var au = vs.filter(function (v) { return /^en[-_]AU$/i.test(v.lang); });
+    if (!au.length) au = vs.filter(function (v) { return /Australia/i.test(v.name) || /^en[-_]AU/i.test(v.lang); });
+    if (!au.length) return null;
+    var fem = /karen|catherine|natasha|female|siri.*female|joanna/i, mal = /lee|gordon|james|male|russell/i;
+    var want = who === 'yes' ? fem : mal, hit = au.filter(function (v) { return want.test(v.name); })[0];
+    return hit || au[0];
+  }
+  function speak(text, who) {
+    try {
+      if (!voiceOn() || !text) return;
+      var ss = window.speechSynthesis;
+      ss.cancel();
+      var u = new SpeechSynthesisUtterance(String(text).replace(/\s+/g, ' '));
+      u.lang = 'en-AU';
+      var v = pickVoice(who);
+      if (v) { u.voice = v; u.lang = v.lang; }
+      u.rate = 1; u.pitch = who === 'yes' ? 1.15 : 0.9; u.volume = 1;
+      ss.speak(u);
+    } catch (e) {}
+  }
+  function stopSpeak() { try { window.speechSynthesis.cancel(); } catch (e) {} }
+  try { if ('speechSynthesis' in window) { window.speechSynthesis.getVoices(); window.speechSynthesis.onvoiceschanged = function () {}; } } catch (e) {}
+
   function fxWelcome(force) {
     try {
       if (!fxOn()) return;
@@ -3337,9 +3374,11 @@ html { background: var(--bg); }
       w.innerHTML = '<div class="wbg"></div><div class="wbanner"><span>' + esc(text) + '</span></div>' +
         '<div class="wstage"><div class="waura"></div><div class="wring"></div>' + emb + body + '</div>';
       l.appendChild(w);
+      speak(text, who);
       var bye = function () {
         if (gone) return;
         gone = true;
+        stopSpeak();
         document.removeEventListener('pointerdown', bye, true);
         w.classList.add('out');
         setTimeout(function () { if (w.parentNode) w.parentNode.removeChild(w); }, 400);
@@ -3427,6 +3466,12 @@ html { background: var(--bg); }
       try { localStorage.setItem('jym:fx', on ? '1' : '0'); } catch (er) {}
       renderSettings();
       if (on) { confetti(30); sparkles(t); }
+    }
+    else if (act === 'vo') {
+      var von = t.getAttribute('data-id') === 'on';
+      try { localStorage.setItem('jym:vo', von ? '1' : '0'); } catch (er) {}
+      renderSettings();
+      if (von) speak('G\'day Jan. Let\'s get after it.', 'yes'); else stopSpeak();
     }
     else if (act === 'chr') {
       var cm = t.getAttribute('data-id');
@@ -3748,11 +3793,12 @@ html { background: var(--bg); }
       n.innerHTML = '<div class="nc"><div class="na">' + YCROP('strict', '-44 -40 288 330') + '</div><h2>Today\'s session has not started</h2><p>' + esc(line) +
         (sk.cur ? ' Your streak is at ' + sk.cur + (sk.cur === 1 ? ' session.' : ' sessions.') : '') + '</p>' +
         '<div class="nb"><button type="button" class="go">Start the session</button><button type="button" class="later">Later</button></div></div>';
-      var close = function () { if (n.parentNode) n.parentNode.removeChild(n); };
+      var close = function () { stopSpeak(); if (n.parentNode) n.parentNode.removeChild(n); };
       n.querySelector('.go').addEventListener('click', function () { close(); showTab('workout'); });
       n.querySelector('.later').addEventListener('click', close);
       n.addEventListener('click', function (e) { if (e.target === n) close(); });
       document.body.appendChild(n);
+      speak('Today\'s session has not started. ' + line, 'yes');
       n.querySelector('.go').focus();
     } catch (e) {}
   }
