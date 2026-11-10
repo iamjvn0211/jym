@@ -3329,9 +3329,15 @@ html { background: var(--bg); }
     // Preferred: Google UK English Female for Yesim, Google UK English Male for Jan.
     var pref = vs.filter(function (v) { return new RegExp('Google UK English ' + (who === 'yes' ? 'Female' : 'Male'), 'i').test(v.name); })[0];
     if (pref) return pref;
-    var gb = vs.filter(function (v) { return /^en[-_]GB$/i.test(v.lang); }), gbw = who === 'yes' ? /female|kate|serena|martha|stephanie/i : /male|daniel|oliver|arthur/i;
-    var gbHit = gb.filter(function (v) { return gbw.test(v.name) && (who === 'yes' ? !/^male|\bmale\b/i.test(v.name.replace(/female/i, '')) : !/female/i.test(v.name)); })[0];
-    if (gbHit) return gbHit;
+    // iPhone: British voices by name, richer (Premium, Enhanced) first.
+    var gb = vs.filter(function (v) { return /^en[-_]GB$/i.test(v.lang); });
+    var order = who === 'yes' ? ['Serena', 'Kate', 'Stephanie', 'Martha'] : ['Daniel', 'Arthur', 'Oliver', 'Gordon'];
+    for (var oi = 0; oi < order.length; oi++) {
+      var nm = new RegExp('^' + order[oi] + '\\b', 'i'),
+        hits = gb.filter(function (v) { return nm.test(v.name); }),
+        rich = hits.filter(function (v) { return /premium|enhanced/i.test(v.name); })[0];
+      if (rich || hits[0]) return rich || hits[0];
+    }
     var au = vs.filter(function (v) { return /^en[-_]AU$/i.test(v.lang); });
     if (!au.length) au = vs.filter(function (v) { return /Australia/i.test(v.name) || /^en[-_]AU/i.test(v.lang); });
     if (!au.length) return null;
