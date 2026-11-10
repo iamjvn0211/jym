@@ -3541,7 +3541,6 @@ html { background: var(--bg); }
     }
     renderHead();
     if (tab === 'nutrition' && prevTab !== 'nutrition') renderNutrition();
-    if (tab === 'welcome' && prevTab !== 'welcome') fxWelcome();
   }
   TABS.forEach(function (n) {
     el['tab-' + n].addEventListener('keydown', function (e) {
@@ -3653,7 +3652,8 @@ html { background: var(--bg); }
     save(); render();
   });
 
-  showTab(hashTab(), true);
+  // The app always opens on Home, whatever the address says.
+  showTab('welcome');
   render();
   initStorage();
   if (tab === 'welcome') setTimeout(function () { if (tab === 'welcome') fxWelcome(); }, 400);
