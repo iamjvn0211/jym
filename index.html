@@ -856,17 +856,17 @@ html { background: var(--bg); }
   // Starting weights for medium strength are a share of body weight (r), rounded to the plates and dumbbells a gym has (step).
   // inc is how much a suggestion goes up after a week where you hit it. per: whether the number is per dumbbell or in total.
   var SPEC = {
-    'Bench press':                      { r: 0.72,  step: 2.5, inc: 2.5, per: 'total' },
+    'Dumbbell bench press':             { r: 0.29,  step: 2,   inc: 2,   per: 'each' },
     'Incline dumbbell press':           { r: 0.245, step: 2,   inc: 2,   per: 'each' },
     'Dumbbell fly':                     { r: 0.135, step: 2,   inc: 2,   per: 'each' },
-    'Barbell curl':                     { r: 0.33,  step: 2.5, inc: 2.5, per: 'total' },
+    'Dumbbell curl':                    { r: 0.14,  step: 2,   inc: 2,   per: 'each' },
     'Hammer curl':                      { r: 0.155, step: 2,   inc: 2,   per: 'each' },
-    'Overhead press':                   { r: 0.44,  step: 2.5, inc: 2.5, per: 'total' },
+    'Dumbbell shoulder press':          { r: 0.17,  step: 2,   inc: 2,   per: 'each' },
     'Lateral raise':                    { r: 0.09,  step: 1,   inc: 1,   per: 'each' },
     'Rear delt fly':                    { r: 0.07,  step: 1,   inc: 1,   per: 'each' },
     'Dumbbell shrug':                   { r: 0.33,  step: 2,   inc: 2,   per: 'each' },
     'Dumbbell pullover':                { r: 0.22,  step: 2,   inc: 2,   per: 'one' },
-    'Barbell row':                      { r: 0.61,  step: 2.5, inc: 2.5, per: 'total' },
+    'Dumbbell bent-over row':           { r: 0.28,  step: 2,   inc: 2,   per: 'each' },
     'One-arm dumbbell row':             { r: 0.31,  step: 2,   inc: 2,   per: 'one' },
     'Lying dumbbell triceps extension': { r: 0.135, step: 2,   inc: 2,   per: 'each' },
     'Overhead triceps extension':       { r: 0.22,  step: 2,   inc: 2,   per: 'one' }
@@ -885,18 +885,19 @@ html { background: var(--bg); }
         "Arm circles: 10 small to big circles forward, then 10 backward, with arms straight out to the sides.",
         "Band pull-aparts: hold a light band at chest height and pull it apart until your arms are out wide. 2 sets of 15.",
         "Push-ups: 1 set of 10 easy reps. Drop to your knees if you need to.",
-        "Finish with 1 or 2 light sets of bench press before your working weight."
+        "Finish with 1 or 2 light sets of dumbbell bench press before your working weight."
       ],
       tip: "You want warm shoulders and a slightly raised heart rate, not tired muscles."
     },
-    "Bench press": {
+    "Dumbbell bench press": {
+      q: "dumbbell bench press form",
       steps: [
-        "Lie on the bench with your eyes under the bar and your feet flat on the floor. Pinch your shoulder blades together and down.",
-        "Grip the bar a little wider than your shoulders. Unrack it and hold it over your mid-chest with straight arms.",
-        "Lower the bar under control until it lightly touches your lower chest. Keep your elbows about 45 to 60 degrees from your body.",
-        "Press the bar back up to the start. Keep your hips on the bench the whole time."
+        "Sit on the end of a flat bench with a dumbbell on each thigh. Lie back and kick the dumbbells up to chest level, one at a time.",
+        "Plant your feet flat on the floor and pinch your shoulder blades together and down. Press the dumbbells up over your chest, palms facing your feet.",
+        "Lower them under control until your upper arms are just below the bench, elbows about 45 to 60 degrees from your body.",
+        "Press back up and bring the dumbbells close together at the top. Keep your hips on the bench the whole time."
       ],
-      tip: "Use a spotter or set the safety bars when lifting heavy. Flared elbows at 90 degrees are hard on the shoulders."
+      tip: "Do not drop the dumbbells at the end of a hard set. Bring them down onto your thighs and sit up. Flared elbows at 90 degrees are hard on the shoulders."
     },
     "Incline dumbbell press": {
       steps: [
@@ -915,11 +916,12 @@ html { background: var(--bg); }
       ],
       tip: "Use a light weight and keep the elbow bend the same on every rep. Do not lower deeper than feels comfortable in your shoulders."
     },
-    "Barbell curl": {
+    "Dumbbell curl": {
+      q: "dumbbell biceps curl form",
       steps: [
-        "Stand tall with feet hip-width apart. Hold the bar with an underhand grip, hands shoulder-width apart.",
-        "Keep your elbows next to your ribs and curl the bar up to shoulder height.",
-        "Squeeze your biceps at the top, then lower the bar over 2 to 3 seconds until your arms are straight."
+        "Stand tall with feet hip-width apart and a dumbbell in each hand, palms facing forward.",
+        "Keep your elbows next to your ribs and curl both dumbbells up to shoulder height.",
+        "Squeeze your biceps at the top, then lower the dumbbells over 2 to 3 seconds until your arms are straight."
       ],
       tip: "If your hips or back swing to move the weight, it is too heavy."
     },
@@ -953,16 +955,17 @@ html { background: var(--bg); }
         "Shoulder circles: 10 slow circles forward and 10 backward.",
         "Wall slides: stand with your back and forearms against a wall and slide your arms up and down, keeping contact. 10 reps.",
         "Band external rotations: elbow at your side bent to 90 degrees, rotate your forearm outward against a light band. 12 reps each side.",
-        "Finish with 1 or 2 light sets of overhead press."
+        "Finish with 1 or 2 light sets of dumbbell shoulder press."
       ],
       tip: "Use a very light band. This is about waking up the small shoulder muscles."
     },
-    "Overhead press": {
+    "Dumbbell shoulder press": {
+      q: "dumbbell shoulder press form",
       steps: [
-        "Stand with feet hip-width apart. Hold the bar at your collarbone with hands just outside your shoulders.",
+        "Sit on a bench with the back upright, or stand. Hold a dumbbell in each hand at shoulder height, palms facing forward.",
         "Squeeze your glutes and abs so your lower back stays neutral.",
-        "Press the bar straight up. Move your head back slightly to let it pass, then push your head forward under it at the top.",
-        "Lower the bar back to your collarbone under control."
+        "Press both dumbbells straight up until your arms are almost straight, with the dumbbells meeting just above your head.",
+        "Lower them back to shoulder height under control."
       ],
       tip: "Do not lean back to finish the rep. If you do, lower the weight or press seated."
     },
@@ -1032,11 +1035,12 @@ html { background: var(--bg); }
       ],
       tip: "Keep your ribs down and your hips low. Choose a weight you can hold securely with both hands."
     },
-    "Barbell row": {
+    "Dumbbell bent-over row": {
+      q: "dumbbell bent over row form",
       steps: [
-        "Stand with feet hip-width apart. Hinge at your hips until your torso is about 45 degrees, back flat, and hold the bar just outside your knees with an overhand grip.",
-        "Pull the bar toward your lower ribs, keeping your elbows close to your body.",
-        "Squeeze your shoulder blades together, then lower the bar slowly to straight arms."
+        "Stand with feet hip-width apart and a dumbbell in each hand. Hinge at your hips until your torso is about 45 degrees, back flat, arms hanging straight down.",
+        "Pull both dumbbells toward your lower ribs, keeping your elbows close to your body.",
+        "Squeeze your shoulder blades together, then lower the dumbbells slowly to straight arms."
       ],
       tip: "Do not jerk your torso upright to move the weight. Keep your back flat and your neck in line with your spine."
     },
@@ -1235,17 +1239,17 @@ html { background: var(--bg); }
     // Tue, Thu and Sat carry easy cardio only. Sun is a full rest day.
     // Mon: chest and biceps (about 56 min)
     add(0, 'mob', 'Warm-up', 'Arm circles, band pull-aparts, light push-ups', 5);
-    add(0, 'str', 'Bench press', '4 × 6–8', 10);
+    add(0, 'str', 'Dumbbell bench press', '4 × 8–10', 10);
     add(0, 'str', 'Incline dumbbell press', '3 × 10', 8);
     add(0, 'str', 'Dumbbell fly', '3 × 12–15', 6);
-    add(0, 'str', 'Barbell curl', '3 × 10', 6);
+    add(0, 'str', 'Dumbbell curl', '3 × 10', 6);
     add(0, 'str', 'Hammer curl', '3 × 12', 6);
     add(0, 'car', 'Incline walk', 'Treadmill, 8–12% incline, brisk', 15);
     // Tue: easy cardio
     add(1, 'car', 'Brisk walk', 'Outdoors or treadmill, steady pace', 35);
     // Wed: shoulders and neck (about 55 min)
     add(2, 'mob', 'Warm-up', 'Shoulder circles, wall slides, band external rotations', 5);
-    add(2, 'str', 'Overhead press', '4 × 8', 10);
+    add(2, 'str', 'Dumbbell shoulder press', '4 × 8–10', 10);
     add(2, 'str', 'Lateral raise', '4 × 12–15', 8);
     add(2, 'str', 'Rear delt fly', '3 × 15', 6);
     add(2, 'str', 'Dumbbell shrug', '3 × 12', 6);
@@ -1256,7 +1260,7 @@ html { background: var(--bg); }
     // Fri: back and triceps (about 58 min)
     add(4, 'mob', 'Warm-up', 'Dead hangs, band pull-aparts, thoracic rotations', 5);
     add(4, 'str', 'Dumbbell pullover', '3 × 12', 8);
-    add(4, 'str', 'Barbell row', '4 × 8', 9);
+    add(4, 'str', 'Dumbbell bent-over row', '4 × 8–10', 9);
     add(4, 'str', 'One-arm dumbbell row', '3 × 12 per side', 8);
     add(4, 'str', 'Lying dumbbell triceps extension', '3 × 12', 6);
     add(4, 'str', 'Overhead triceps extension', '3 × 12', 6);
@@ -2892,7 +2896,7 @@ html { background: var(--bg); }
   var cloudFailed = false;
   var saving = false, dirty = false, saveTimer = null;
 
-  function serialize() { return { v: 9, pv: 2, cel: cel, seen: seen, startKg: startKg, startFat: startFat, plan: plan, done: done, logs: logs, recs: recs, level: level, body: bodyKg, weigh: weigh, goalKg: goalKg, goalMonths: goalMonths, nutri: nutriSerialize() }; }
+  function serialize() { return { v: 9, pv: 3, cel: cel, seen: seen, startKg: startKg, startFat: startFat, plan: plan, done: done, logs: logs, recs: recs, level: level, body: bodyKg, weigh: weigh, goalKg: goalKg, goalMonths: goalMonths, nutri: nutriSerialize() }; }
   function apply(data) {
     coreCache = null;
     if (!data || typeof data !== 'object') return;
@@ -2940,6 +2944,16 @@ html { background: var(--bg); }
         var have2 = {};
         plan.forEach(function (a) { have2[a.id] = 1; });
         plan = plan.concat(defaultPlan().filter(function (a) { return a.bonus && !have2[a.id]; }));
+      }
+      if (!legacy && (data.pv | 0) < 3) {
+        // Plan version 3: no barbells at the gym for now, so the four barbell lifts became dumbbell lifts.
+        var fresh3 = {};
+        defaultPlan().forEach(function (a) { fresh3[a.id] = a; });
+        var swap3 = { r1: 'Bench press', r4: 'Barbell curl', r9: 'Overhead press', r18: 'Barbell row' };
+        plan = plan.map(function (a) {
+          var f = fresh3[a.id];
+          return swap3[a.id] === a.name && f ? { id: a.id, day: a.day, cat: f.cat, name: f.name, detail: f.detail, min: f.min, bonus: f.bonus } : a;
+        });
       }
       if (!legacy && (data.v | 0) < 6) {
         // Version 6 switched machine and cable exercises to free weights.
@@ -3280,7 +3294,7 @@ html { background: var(--bg); }
     } catch (e) {}
   }
   var WELCOME_MSGS = ['Let\'s go jymming, Jan!', 'Welcome back, Jan!', 'Time to get stronger, Jan!', 'Jan is in the building!', 'Ready to crush it, Jan?', 'Iron is waiting, Jan.', 'Show up. Lift. Repeat.', 'Look who is back!', 'Today we get better.', 'Let\'s work, Jan!',
-    'I\'ll be back. After leg day.', 'Hasta la vista, couch!', 'Get to the barbell, Jan!', 'Light weight, baby!', 'May the gains be with you, Jan.', 'One does not simply skip leg day.',
+    'I\'ll be back. After leg day.', 'Hasta la vista, couch!', 'Get to the dumbbells, Jan!', 'Light weight, baby!', 'May the gains be with you, Jan.', 'One does not simply skip leg day.',
     'Your biceps called. They want a raise.', 'Mirror, mirror: who is the strongest of all?', 'It is not the size of the dumbbell. Okay, it is.', 'Gains loading... please wait.'];
   var welAt = 0;
   function welcomeText() {
