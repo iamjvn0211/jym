@@ -678,6 +678,19 @@ html { background: var(--bg); }
 .swapbox { margin: 0 0 8px; }
 .swapbox:empty { display: none; }
 .swapbox .ghost[disabled] { opacity: .5; }
+.timer { margin: 0 0 12px; }
+.timer:empty { display: none; }
+.tmc { display: flex; flex-direction: column; gap: 10px; padding: 16px; border-radius: 18px; background: var(--bg); border: 1px solid var(--line); }
+.tmc.run { border-color: var(--acc); }
+.tmc .tmrow { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.tmc .tml { font-size: 14px; font-weight: 600; color: var(--muted); }
+.tmc .tmt { font-family: var(--font-display); font-size: 40px; line-height: 1; font-weight: 800; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+.tmc .tms { font-size: 14px; color: var(--muted); }
+.tmc .tmb { display: flex; gap: 8px; flex-wrap: wrap; }
+.tmc .tmb .primary { flex: 1 1 160px; }
+.tmc .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: var(--acc); margin-right: 6px; }
+@media (prefers-reduced-motion: no-preference) { .tmc.run .dot { animation: tmpulse 1.4s ease-in-out infinite; } }
+@keyframes tmpulse { 50% { opacity: .25; } }
 </style>
 </head>
 <body>
@@ -704,6 +717,7 @@ html { background: var(--bg); }
   </div>
 
   <div class="tabpanel" id="panel-workout" role="tabpanel" aria-labelledby="tab-workout">
+  <div class="timer" id="timer"></div>
   <div class="coach" id="coach"></div>
   <div class="strip" id="strip"></div>
 
@@ -1317,6 +1331,9 @@ html { background: var(--bg); }
   var cel = {};
   var swp = {}; // swp[weekKey] = 7 numbers: which plan day is shown on each calendar day of that week (only that week)
   var swapOpen = false;
+  var tm = {}; // tm[weekKey|calendarDay] = { s: start ms, e: end ms, m: minutes } for finished, timed sessions
+  var tmA = null; // running timer: { k: weekKey, d: calendarDay, s: start ms }
+  var tmTick = null, tmArm = false;
   var level = 'medium';
   var chartLift = null;
   var bodyKg = 90;
@@ -1347,7 +1364,7 @@ html { background: var(--bg); }
   ['range', 'prev', 'next', 'thisweek', 'strip', 'targets', 'dayhead', 'daysub', 'swapbox', 'editbtn', 'list', 'editextra',
    'restore', 'addbtn', 'addform', 'f-name', 'f-day', 'f-min', 'f-detail', 'cancel', 'status', 'toast', 'progress', 'body',
    'panel-workout', 'panel-progress', 'tab-workout', 'tab-progress', 'nutrition', 'panel-nutrition', 'tab-nutrition', 'welcome', 'panel-welcome', 'tab-welcome',
-   'panel-settings', 'tab-settings', 'settings', 'headav', 'coach', 'game', 'weekrow'].forEach(function (id) {
+   'panel-settings', 'tab-settings', 'settings', 'headav', 'coach', 'timer', 'game', 'weekrow'].forEach(function (id) {
     el[id] = document.getElementById(id);
   });
 
@@ -1540,6 +1557,60 @@ html { background: var(--bg); }
     }).join('');
   }
 
+  /* ---------- session timer ---------- */
+  var TM_MAX = 4 * 3600000;
+  function clock(ms) {
+    var s = Math.max(0, Math.floor(ms / 1000)), h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60);
+    s = s % 60;
+    return (h ? h + ':' + (m < 10 ? '0' : '') : '') + m + ':' + (s < 10 ? '0' : '') + s;
+  }
+  function hhmm(ms) { var d = new Date(ms); return (d.getHours() < 10 ? '0' : '') + d.getHours() + ':' + (d.getMinutes() < 10 ? '0' : '') + d.getMinutes(); }
+  function renderTimer() {
+    var box = el.timer;
+    if (!box) return;
+    clearInterval(tmTick); tmTick = null;
+    if (notStarted) { box.innerHTML = ''; return; }
+    var t0 = Date.now(), k0 = iso(todayMon), rec = tm[k0 + '|' + todayIdx], h = '';
+    if (tmA && t0 - tmA.s > TM_MAX) {
+      h = '<div class="tmc"><div class="tml">A timer was left running</div><div class="tms">It started at ' + hhmm(tmA.s) + ' and was never finished, so it was not counted. The planned minutes still apply.</div>' +
+        '<div class="tmb"><button type="button" class="primary" data-act="tmdiscard">Clear it and start fresh</button></div></div>';
+    } else if (tmA) {
+      h = '<div class="tmc run" role="group" aria-label="Session timer"><div class="tmrow"><span class="tml"><i class="dot"></i>Session running</span><span class="tms">Started ' + hhmm(tmA.s) + '</span></div>' +
+        '<div class="tmt" id="tmclock" role="timer">' + clock(t0 - tmA.s) + '</div>' +
+        '<div class="tmb"><button type="button" class="primary" data-act="tmfinish">Finish session</button><button type="button" class="ghost" data-act="tmdiscard">Discard</button></div></div>';
+      tmTick = setInterval(function () {
+        if (!tmA) return;
+        if (Date.now() - tmA.s > TM_MAX) { renderTimer(); return; }
+        var c = document.getElementById('tmclock');
+        if (c) c.textContent = clock(Date.now() - tmA.s);
+      }, 1000);
+    } else if (rec && rec.m) {
+      var pl = trainDay(k0, todayIdx).planned;
+      h = '<div class="tmc"><div class="tmrow"><span class="tml">Today\'s session</span><span class="tms">' + hhmm(rec.s) + ' to ' + hhmm(rec.e) + '</span></div>' +
+        '<div class="tmt">' + esc(hm(rec.m)) + '</div>' + (pl ? '<div class="tms">Planned ' + pl + ' min</div>' : '') +
+        '<div class="tmb"><button type="button" class="ghost" data-act="tmreset">' + (tmArm ? 'Tap again to reset' : 'Reset timer') + '</button></div></div>';
+    } else {
+      h = '<div class="tmc"><div class="tml">Ready when you are</div>' +
+        '<div class="tms">Start the timer when you begin. Once you finish, the real time replaces the planned minutes.</div>' +
+        '<div class="tmb"><button type="button" class="primary" data-act="tmstart">Start session</button></div></div>';
+    }
+    box.innerHTML = h;
+  }
+  function tmStart() {
+    if (tmA || notStarted) return;
+    tmA = { k: iso(todayMon), d: todayIdx, s: Date.now() };
+    save(); render();
+    toast('Timer started. Finish the session when you are done.');
+  }
+  function tmFinish() {
+    if (!tmA) return;
+    var e = Date.now(), m = Math.max(1, Math.min(240, Math.round((e - tmA.s) / 60000)));
+    tm[tmA.k + '|' + tmA.d] = { s: tmA.s, e: e, m: m };
+    tmA = null; tmArm = false;
+    save(); render();
+    toast('Session finished: ' + hm(m) + '.');
+  }
+
   function renderSwap() {
     var box = el.swapbox;
     if (!box) return;
@@ -1579,9 +1650,10 @@ html { background: var(--bg); }
     el.dayhead.textContent = fmtDay.format(d);
     var total = acts.reduce(function (s, a) { return s + (a.min || 0); }, 0);
     var bn = bonusActs.filter(function (a) { return dn[a.id]; }).length;
+    var trec = tm[iso(weekStart) + '|' + dayIdx];
     el.daysub.textContent = acts.length
-      ? n + ' of ' + acts.length + ' done' + (total ? ' · about ' + total + ' min' : '')
-      : bonusActs.length ? 'Bonus day · optional · ' + bn + ' of ' + bonusActs.length + ' done' : 'Rest day';
+      ? n + ' of ' + acts.length + ' done' + (trec ? ' · ' + hm(trec.m) + ' actual' + (total ? ', ' + total + ' min planned' : '') : total ? ' · about ' + total + ' min' : '')
+      : bonusActs.length ? 'Bonus day · optional · ' + bn + ' of ' + bonusActs.length + ' done' + (trec ? ' · ' + hm(trec.m) + ' actual' : '') : 'Rest day';
     renderSwap();
     var stretchActs = bonusActs.filter(isStretch);
     var plainBonus = bonusActs.filter(function (a) { return !isStretch(a); });
@@ -2786,6 +2858,7 @@ html { background: var(--bg); }
   ];
   var STAR_TXT = ['', 'Poor week', 'Weak week', 'Okay week', 'Strong week', 'Perfect week'];
 
+  function actMin(k, i) { var r = tm[k + '|' + i]; return r && r.m > 0 ? r.m : null; }
   function trainDay(k, i) {
     var dn = done[k] || {}, planned = 0, base = 0, all = 0, lifts = 0, bn = 0, bmin = 0, bst = 0;
     var pdi = planDay(k, i);
@@ -2822,7 +2895,8 @@ html { background: var(--bg); }
     var nutriOn = !!firstNutri && iso(addDays(fromIso(k), 6)) >= firstNutri;
     for (i = 0; i < 7; i++) {
       var td = trainDay(k, i), nd = nutriDay(k, i);
-      allMin += td.base;
+      var am = td.planned > 0 ? actMin(k, i) : null;
+      allMin += am != null ? am : td.base;
       if (td.bn > 0) bDays++;
       bMin += td.bmin; bStretch += td.bst;
       if (i <= lastDay) {
@@ -2972,7 +3046,7 @@ html { background: var(--bg); }
     var tcount = 0, tdone = 0, bonusToday = rowsOn(iso(todayMon), todayIdx).some(function (a) { return isBonus(a); });
     rowsOn(iso(todayMon), todayIdx).forEach(function (a) { if (!isBonus(a)) { tcount++; if ((done[iso(todayMon)] || {})[a.id]) tdone++; } });
     html += '<div class="todaycard"><div class="tt">Today · ' + dnames[todayIdx] + '</div><div class="line" style="margin:0">' +
-      (tdy.planned ? hm(tdy.planned) + ' planned · ' + tdone + ' of ' + tcount + ' done' : bonusToday ? 'Bonus day. Optional, but it earns extra credit.' : 'Rest day. Keep it light and eat enough protein.') + '</div>' +
+      (tdy.planned ? ((tm[iso(todayMon) + '|' + todayIdx] || {}).m ? hm(tm[iso(todayMon) + '|' + todayIdx].m) + ' actual' : hm(tdy.planned) + ' planned') + ' · ' + tdone + ' of ' + tcount + ' done' : bonusToday ? 'Bonus day. Optional, but it earns extra credit.' : 'Rest day. Keep it light and eat enough protein.') + '</div>' +
       (tdy.planned ? '<div class="tbar"><i style="width:' + Math.round(tcount ? tdone / tcount * 100 : 0) + '%"></i></div><button type="button" class="primary" data-act="tab" data-id="workout">Open today\'s workout</button>'
         : bonusToday ? '<button type="button" class="primary" data-act="tab" data-id="workout">See the bonus options</button>' : '') + '</div>';
 
@@ -3031,14 +3105,14 @@ html { background: var(--bg); }
     el.welcome.innerHTML = html;
   }
   /* ===== END WELCOME BACK ===== */
-  function render() { coreCache = null; renderHead(); renderCoach(); renderStrip(); renderTargets(); renderList(); renderGame(); renderBody(); renderProgress(); renderNutrition(); renderWelcome(); renderSettings(); }
+  function render() { coreCache = null; renderHead(); renderCoach(); renderTimer(); renderStrip(); renderTargets(); renderList(); renderGame(); renderBody(); renderProgress(); renderNutrition(); renderWelcome(); renderSettings(); }
 
   /* ---------- saving ---------- */
   var ref = null;
   var cloudFailed = false;
   var saving = false, dirty = false, saveTimer = null;
 
-  function serialize() { return { v: 9, pv: 3, swp: swp, cel: cel, seen: seen, startKg: startKg, startFat: startFat, plan: plan, done: done, logs: logs, recs: recs, level: level, body: bodyKg, weigh: weigh, goalKg: goalKg, goalMonths: goalMonths, nutri: nutriSerialize() }; }
+  function serialize() { return { v: 9, pv: 3, swp: swp, cel: cel, tm: tm, tma: tmA, seen: seen, startKg: startKg, startFat: startFat, plan: plan, done: done, logs: logs, recs: recs, level: level, body: bodyKg, weigh: weigh, goalKg: goalKg, goalMonths: goalMonths, nutri: nutriSerialize() }; }
   function apply(data) {
     coreCache = null;
     if (!data || typeof data !== 'object') return;
@@ -3050,6 +3124,13 @@ html { background: var(--bg); }
     else if (bw >= 30 && bw <= 250) bodyKg = bw;
     if (data.recs && typeof data.recs === 'object') recs = data.recs;
     cel = data.cel && typeof data.cel === 'object' ? data.cel : {};
+    tm = {}; tmA = null;
+    if (data.tm && typeof data.tm === 'object') Object.keys(data.tm).forEach(function (key) {
+      var r = data.tm[key];
+      if (/^\d{4}-\d{2}-\d{2}\|[0-6]$/.test(key) && r && +r.m >= 1 && +r.m <= 240 && +r.s > 0 && +r.e >= +r.s) tm[key] = { s: +r.s, e: +r.e, m: Math.round(+r.m) };
+    });
+    var ta = data.tma;
+    if (ta && typeof ta === 'object' && /^\d{4}-\d{2}-\d{2}$/.test(ta.k) && (ta.d | 0) >= 0 && (ta.d | 0) <= 6 && +ta.s > 0) tmA = { k: ta.k, d: ta.d | 0, s: +ta.s };
     swp = {};
     if (data.swp && typeof data.swp === 'object') Object.keys(data.swp).forEach(function (wk) {
       var p = data.swp[wk];
@@ -3583,6 +3664,13 @@ html { background: var(--bg); }
     var act = t.getAttribute('data-act');
     if (act === 'export') exportData();
     else if (act === 'toggle') toggle(t.getAttribute('data-id'));
+    else if (act === 'tmstart') tmStart();
+    else if (act === 'tmfinish') tmFinish();
+    else if (act === 'tmdiscard') { tmA = null; save(); render(); }
+    else if (act === 'tmreset') {
+      if (!tmArm) { tmArm = true; renderTimer(); setTimeout(function () { tmArm = false; renderTimer(); }, 4000); }
+      else { tmArm = false; delete tm[iso(todayMon) + '|' + todayIdx]; save(); render(); }
+    }
     else if (act === 'day') { dayIdx = +t.getAttribute('data-i'); swapOpen = false; render(); }
     else if (act === 'tab') showTab(t.getAttribute('data-id'));
     else if (act === 'level') {
@@ -3909,7 +3997,7 @@ html { background: var(--bg); }
   function nudgeDue() {
     try {
       var d = new Date(), k = iso(d);
-      if (d.getHours() < 17 || k < START || tab !== 'welcome') return false;
+      if (d.getHours() < 17 || k < START || tab !== 'welcome' || tmA) return false;
       var i = (d.getDay() + 6) % 7, wk = iso(mondayOf(d));
       var acts = rowsOn(wk, i).filter(function (a) { return !isBonus(a); }), pdn = planDay(wk, i);
       if (!acts.length || !coreMap()[pdn] || !isTrain(pdn)) return false;
