@@ -2872,6 +2872,72 @@ html { background: var(--bg); }
     return svg + '</svg>';
   }
 
+  /* ---------- Home banner: the line reacts to the week, the streak and your progress ---------- */
+  function dayPick(arr, salt) {
+    var str = iso(now) + '|' + salt, h = 0, i;
+    for (i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) >>> 0;
+    return arr[h % arr.length];
+  }
+  function weekPR() {
+    var cur = logs[iso(todayMon)] || {}, best = null, mk = iso(todayMon);
+    Object.keys(cur).forEach(function (name) {
+      var v = +cur[name];
+      if (!(v > 0)) return;
+      var prev = 0;
+      Object.keys(logs).forEach(function (k) { if (k < mk) prev = Math.max(prev, +(logs[k] || {})[name] || 0); });
+      if (prev > 0 && v > prev && (!best || v - prev > best.d)) best = { name: name, d: Math.round((v - prev) * 10) / 10 };
+    });
+    return best;
+  }
+  function homeHead(ws, lw, hasData, hasLast) {
+    if (notStarted) return { text: 'Your plan starts Monday 9 November. Set your start weight in Settings.' };
+    if (!hasData) return { text: 'Let us get your first week on the board. Start with one session.' };
+    var wkMon = iso(todayMon), wkSun = iso(addDays(todayMon, 6));
+    var sess = sessionList().filter(function (x) { return x.date >= wkMon && x.date <= wkSun; });
+    var total = sess.length, nDone = sess.filter(function (x) { return x.st === 'done'; }).length, nMiss = sess.filter(function (x) { return x.st === 'missed'; }).length;
+    var rem = total - nDone - nMiss, allDone = total > 0 && nDone === total;
+    var wkStreak = streaks().cur, ss = sessionStreak().cur, text, win = false;
+    var lastLine = hasLast && todayIdx <= 1 ? ' Last week earned ' + lw.stars + (lw.stars === 1 ? ' star.' : ' stars.') : '';
+    if (allDone) {
+      text = dayPick(['All ' + total + ' sessions are done this week. Anything extra is a bonus.', 'Perfect week locked in. Rest, eat, enjoy it.', total + ' out of ' + total + '. Come Monday we go again.', 'Week complete. That is how it is done.'], 'all');
+    } else if (nDone === 0 && nMiss === 0) {
+      text = dayPick(['New week, clean slate. Show up for the first session.', 'Fresh week. The first rep is the hardest, so make it count.', 'Nothing on the board yet. One session changes that.', 'Start the week with a session and the rest follows.'], 'new') + lastLine;
+    } else if (nDone === 0) {
+      text = dayPick(['Nothing on the board yet this week. Today is the day to change that.', 'The week is slipping. One session turns it around.', 'No sessions yet. Pick the next one and go.'], 'none');
+    } else if (nMiss === 0 && nDone === 1) {
+      text = dayPick(['One session in the bank. ' + rem + ' to go.', 'First one done. The week is yours now.', 'Off to a good start. Keep the rhythm.'], 'one');
+    } else if (nMiss === 0) {
+      text = dayPick([nDone + ' down, ' + rem + ' to go. Do not stop now.', 'Only ' + rem + ' session' + (rem === 1 ? '' : 's') + ' left for a perfect week.', 'The last session is the one that makes the week count.'], 'two');
+    } else {
+      text = dayPick(['One session slipped. Finish the other ' + rem + ' and the week is still solid.', 'A session slipped. Win the rest of the week.', nDone + ' done, ' + nMiss + ' missed. Close the week out strong.'], 'miss');
+      if (rem <= 0) text = 'This week is done. Next Monday is a clean start.';
+    }
+    // One extra line: streak first, then rotating progress notes
+    var ex = [], f = function (n) { return (Math.round(n * 10) / 10).toString(); };
+    if (wkStreak >= 2) {
+      var sl = allDone ? 'That makes ' + wkStreak + ' perfect weeks in a row.' : wkStreak + ' weeks in a row. Do not screw it up.';
+      ex.push({ t: sl, w: 1 }, { t: allDone ? wkStreak + ' weeks in a row and counting.' : 'Week ' + (wkStreak + 1) + ' is on the line. The streak is ' + wkStreak + ' strong.', w: 1 });
+      if (wkStreak >= 3) ex.push({ t: sl, w: 1 });
+    } else if (wkStreak === 1 && !allDone) ex.push({ t: 'One perfect week behind you. Make it two.', w: 1 });
+    var pr = weekPR();
+    if (pr) ex.push({ t: pr.name + ' is up ' + f(pr.d) + ' kg this week.', w: 1 });
+    var wk = weighKeys();
+    if (wk.length) {
+      var curW = weigh[wk[wk.length - 1]].kg, loss = startKg - curW, togo = curW - goalKg;
+      if (curW <= goalKg) ex.push({ t: 'Goal weight reached. Now hold it.', w: 1 });
+      else {
+        if (loss >= 0.5) ex.push({ t: 'Down ' + f(loss) + ' kg since day one' + (togo > 0.1 ? ', ' + f(togo) + ' to go.' : '.'), w: 1 });
+        if (wk.length > 1) { var chg = curW - weigh[wk[wk.length - 2]].kg; if (chg <= -0.2) ex.push({ t: 'Last weigh-in: down ' + f(-chg) + ' kg.', w: 1 }); }
+      }
+    }
+    var st = strengthStats();
+    if (st.avg !== null && st.avg >= 0.03 && st.lifts >= 2) ex.push({ t: 'Strength is up ' + Math.round(st.avg * 100) + '% across ' + st.lifts + ' lifts.', w: 1 });
+    if (ss >= 3) ex.push({ t: ss + ' sessions in a row.', w: 0 });
+    var pick = ex.length ? dayPick(ex, 'ex') : null;
+    if (pick) { text += ' ' + pick.t; win = !!pick.w; }
+    return { text: text, allDone: allDone, win: win };
+  }
+
   function renderWelcome() {
     if (!el.welcome) return;
     var cur = iso(todayMon), prev = iso(addDays(todayMon, -7));
@@ -2881,19 +2947,14 @@ html { background: var(--bg); }
     var chartWs = wcWeek === 'last' && hasLast ? lw : ws;
     var hr = now.getHours();
     var greet = hr < 11 ? 'Good morning' : hr < 18 ? 'Good afternoon' : 'Good evening';
-    var head;
-    if (notStarted) head = 'Your plan starts Monday 9 November. Set your start weight in Settings.';
-    else if (!hasData) head = 'Let us get your first week on the board. Start with one session.';
-    else if (lw.stars >= 4) head = 'Last week was strong. Keep the rhythm going.';
-    else if (lw.stars === 3) head = 'A solid base. One more session this week earns the next star.';
-    else head = 'A new week is a clean start. Show up for the first session.';
+    var hh = homeHead(ws, lw, hasData, hasLast), head = hh.text;
 
     var tdy0 = trainDay(iso(todayMon), todayIdx), tdone0 = 0;
     rowsOn(iso(todayMon), todayIdx).forEach(function (a) { if (!isBonus(a) && (done[iso(todayMon)] || {})[a.id]) tdone0++; });
     var tcount0 = rowsOn(iso(todayMon), todayIdx).filter(function (a) { return !isBonus(a); }).length;
     var slack = slackMsg();
     if (slack) head = slack;
-    var hmood = slack ? 'angry' : notStarted ? 'idea' : (hasLast && lw.stars >= 4) ? 'cheer' : (!tdy0.planned ? 'rest' : tdone0 >= tcount0 ? 'cheer' : 'work');
+    var hmood = slack ? 'angry' : notStarted ? 'idea' : hh.allDone ? 'cheer' : (tdy0.planned && tcount0 && tdone0 >= tcount0) ? 'cheer' : hh.win ? 'proud' : (!tdy0.planned ? 'rest' : 'work');
     var dateTxt = new Intl.DateTimeFormat('en-GB', { weekday: 'long', day: 'numeric', month: 'long' }).format(now);
     var html = '<div class="herocard"><div class="hcopy"><div class="hdate">' + esc(dateTxt) + '</div><div class="htitle">Welcome back, Jan!</div><div class="hsub">' + esc(head) + '</div></div><div class="hav">' + avatar(hmood, 176) + '</div></div>' + levelCardHtml();
 
