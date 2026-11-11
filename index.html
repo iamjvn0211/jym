@@ -2944,6 +2944,7 @@ html { background: var(--bg); }
     var ws = weekScore(cur), lw = weekScore(prev);
     var hasData = Object.keys(done).some(function (k) { return k >= START; });
     var hasLast = prev >= START;
+    var noLast = wcWeek === 'last' && !hasLast;
     var chartWs = wcWeek === 'last' && hasLast ? lw : ws;
     var hr = now.getHours();
     var greet = hr < 11 ? 'Good morning' : hr < 18 ? 'Good afternoon' : 'Good evening';
@@ -2996,9 +2997,9 @@ html { background: var(--bg); }
     // chart
     html += '<div><h3>Strength and nutrition by day</h3><div class="seg two" role="group" aria-label="Week" style="margin-bottom:10px">' +
       [['last', 'Last week'], ['this', 'This week']].map(function (m) { return '<button type="button" data-act="wcweek" data-id="' + m[0] + '" aria-pressed="' + (wcWeek === m[0]) + '">' + m[1] + '</button>'; }).join('') + '</div>' +
-      weekChart(chartWs) +
+      (noLast ? '<div class="eqcard"><p class="line" style="margin:0">No records for last week. Your first week started Monday 9 November.</p></div>' : weekChart(chartWs) +
       '<div class="legend"><span><i class="lt"></i>Training, planned minutes done</span><span><i class="ln2"></i>Nutrition, calories and protein vs target</span></div>' +
-      '<p class="fine">' + (chartWs.nutriOn ? '' : 'No meals were logged that week, so the nutrition bars are empty. ') + 'Log meals on the Nutrition tab by ticking them.</p></div>';
+      '<p class="fine">' + (chartWs.nutriOn ? '' : 'No meals were logged that week, so the nutrition bars are empty. ') + 'Log meals on the Nutrition tab by ticking them.</p>') + '</div>';
 
     // overview
     html += '<div><h3>Overview</h3><div class="rows">' +
