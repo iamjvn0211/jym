@@ -675,6 +675,9 @@ html { background: var(--bg); }
 #nudge button { font: inherit; min-height: 48px; border-radius: 14px; font-weight: 700; cursor: pointer; border: 1px solid var(--line); background: transparent; color: var(--ink); }
 #nudge button.go { background: var(--acc); border-color: var(--acc); color: var(--onacc); font-size: 16px; }
 @media (prefers-reduced-motion: no-preference) { #nudge .nc { animation: cardin .45s cubic-bezier(.2, 1.4, .4, 1) both; } }
+.swapbox { margin: 0 0 8px; }
+.swapbox:empty { display: none; }
+.swapbox .ghost[disabled] { opacity: .5; }
 </style>
 </head>
 <body>
@@ -712,6 +715,7 @@ html { background: var(--bg); }
       </div>
       <button type="button" class="ghost" id="editbtn" aria-pressed="false">Edit plan</button>
     </div>
+    <div id="swapbox" class="swapbox"></div>
     <ul class="list" id="list"></ul>
     <div class="editextra" id="editextra" hidden>
       <button type="button" class="ghost" id="restore">Restore recommended plan</button>
@@ -1311,6 +1315,8 @@ html { background: var(--bg); }
   var logs = {};
   var recs = {};
   var cel = {};
+  var swp = {}; // swp[weekKey] = 7 numbers: which plan day is shown on each calendar day of that week (only that week)
+  var swapOpen = false;
   var level = 'medium';
   var chartLift = null;
   var bodyKg = 90;
@@ -1338,7 +1344,7 @@ html { background: var(--bg); }
   var badgeSel = 2;
 
   var el = {};
-  ['range', 'prev', 'next', 'thisweek', 'strip', 'targets', 'dayhead', 'daysub', 'editbtn', 'list', 'editextra',
+  ['range', 'prev', 'next', 'thisweek', 'strip', 'targets', 'dayhead', 'daysub', 'swapbox', 'editbtn', 'list', 'editextra',
    'restore', 'addbtn', 'addform', 'f-name', 'f-day', 'f-min', 'f-detail', 'cancel', 'status', 'toast', 'progress', 'body',
    'panel-workout', 'panel-progress', 'tab-workout', 'tab-progress', 'nutrition', 'panel-nutrition', 'tab-nutrition', 'welcome', 'panel-welcome', 'tab-welcome',
    'panel-settings', 'tab-settings', 'settings', 'headav', 'coach', 'game', 'weekrow'].forEach(function (id) {
@@ -1416,6 +1422,15 @@ html { background: var(--bg); }
   function isStretch(a) { return !!a.bonus && a.cat === 'mob'; }
   function isBonus(a) { return !!a.bonus || !coreMap()[a.day]; }
 
+  // Day swap for one week. Calendar day i of week k shows the rows of plan day planDay(k, i). Rows keep their plan day, so
+  // a strength row stays a strength row when it moves, and ticks stay attached to the row ids.
+  function planDay(k, i) { var p = swp[k]; return p && p[i] != null ? p[i] : i; }
+  function rowsOn(k, i) { var pd = planDay(k, i); return plan.filter(function (a) { return a.day === pd; }); }
+  function swapElig(k, i) {
+    if (k !== iso(todayMon) || notStarted || i < todayIdx) return false;
+    var dn = done[k] || {};
+    return !rowsOn(k, i).some(function (a) { return dn[a.id]; });
+  }
   function weekDone() { return done[iso(weekStart)] || {}; }
 
   function stats() {
@@ -1440,7 +1455,7 @@ html { background: var(--bg); }
     var k = iso(d);
     if (k < START || !dayPassed(d)) return false;
     var wk = iso(mondayOf(d)), i = (d.getDay() + 6) % 7;
-    var acts = plan.filter(function (a) { return a.day === i && !isBonus(a); });
+    var acts = rowsOn(wk, i).filter(function (a) { return !isBonus(a); });
     if (!acts.length) return false;
     var dn = done[wk] || {};
     return acts.some(function (a) { return !dn[a.id]; });
@@ -1494,11 +1509,11 @@ html { background: var(--bg); }
     var html = '';
     for (var i = 0; i < 7; i++) {
       var d = addDays(weekStart, i);
-      var acts = plan.filter(function (a) { return a.day === i && !isBonus(a); });
+      var acts = rowsOn(iso(weekStart), i).filter(function (a) { return !isBonus(a); });
       var n = acts.filter(function (a) { return dn[a.id]; }).length;
       var pct = acts.length ? Math.round(n / acts.length * 100) : 0;
       var isToday = iso(d) === iso(now);
-      var bacts = plan.filter(function (a) { return a.day === i && isBonus(a); });
+      var bacts = rowsOn(iso(weekStart), i).filter(function (a) { return isBonus(a); });
       var bdone = bacts.filter(function (a) { return dn[a.id]; }).length;
       if (!acts.length && bacts.length) pct = Math.round(bdone / bacts.length * 100);
       var label = fmtDay.format(d) + ', ' + (acts.length ? n + ' of ' + acts.length + ' done' : bacts.length ? 'bonus day, ' + bdone + ' of ' + bacts.length + ' done' : 'nothing planned');
@@ -1525,9 +1540,38 @@ html { background: var(--bg); }
     }).join('');
   }
 
+  function renderSwap() {
+    var box = el.swapbox;
+    if (!box) return;
+    var k = iso(weekStart), DNL = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'], h = '';
+    if (k === iso(todayMon)) {
+      var cur = swp[k], pair = [];
+      if (cur) for (var c = 0; c < 7; c++) if (cur[c] !== c) pair.push(c);
+      if (pair.length === 2) {
+        var can = swapElig(k, pair[0]) && swapElig(k, pair[1]);
+        h = '<p class="fine" style="margin:0 0 6px">Swapped this week: ' + DNL[pair[0]] + ' and ' + DNL[pair[1]] + '. It goes back to normal next Monday.</p>' +
+          '<button type="button" class="ghost" data-act="swapundo"' + (can ? '' : ' disabled') + '>Undo swap</button>' +
+          (can ? '' : '<p class="fine" style="margin:6px 0 0">A swap can only be undone while both days are still ahead of you and nothing is ticked on them.</p>');
+      } else if (swapElig(k, dayIdx)) {
+        var others = [];
+        for (var j = 0; j < 7; j++) if (j !== dayIdx && swapElig(k, j)) others.push(j);
+        if (others.length) {
+          if (swapOpen) {
+            h = '<p class="fine" style="margin:0 0 6px">Swap ' + DNL[dayIdx] + ' with:</p><div class="lchips" role="group" aria-label="Swap with">' +
+              others.map(function (j) { return '<button type="button" data-act="swapdo" data-i="' + j + '">' + DN[j] + '</button>'; }).join('') +
+              '<button type="button" data-act="swapcancel">Cancel</button></div><p class="fine" style="margin:6px 0 0">The whole days trade places for this week only. Streaks, stars and badges follow the new days.</p>';
+          } else {
+            h = '<button type="button" class="ghost" data-act="swapopen">Swap ' + DNL[dayIdx] + ' with another day</button>';
+          }
+        }
+      }
+    }
+    box.innerHTML = h;
+  }
+
   function renderList() {
     var d = addDays(weekStart, dayIdx);
-    var dayActs = plan.filter(function (a) { return a.day === dayIdx; });
+    var dayActs = rowsOn(iso(weekStart), dayIdx);
     var acts = dayActs.filter(function (a) { return !isBonus(a); });
     var bonusActs = dayActs.filter(function (a) { return isBonus(a); });
     var dn = weekDone();
@@ -1538,6 +1582,7 @@ html { background: var(--bg); }
     el.daysub.textContent = acts.length
       ? n + ' of ' + acts.length + ' done' + (total ? ' · about ' + total + ' min' : '')
       : bonusActs.length ? 'Bonus day · optional · ' + bn + ' of ' + bonusActs.length + ' done' : 'Rest day';
+    renderSwap();
     var stretchActs = bonusActs.filter(isStretch);
     var plainBonus = bonusActs.filter(function (a) { return !isStretch(a); });
     var stretchPart = stretchActs.length ? [{ head: 1, text: 'Posture stretching: shoulders and hips', stretch: 1 }].concat(stretchActs) : [];
@@ -1703,8 +1748,9 @@ html { background: var(--bg); }
     for (var w = fromIso(START); iso(w) <= endK; w = addDays(w, 7)) {
       var k = iso(w), dn = done[k] || {};
       for (var d = 0; d < 7; d++) {
-        if (!cm[d] || !isTrain(d)) continue;
-        var acts = plan.filter(function (a) { return a.day === d && !isBonus(a); });
+        var pd = planDay(k, d);
+        if (!cm[pd] || !isTrain(pd)) continue;
+        var acts = rowsOn(k, d).filter(function (a) { return !isBonus(a); });
         if (!acts.length) continue;
         var dk = iso(addDays(w, d)), all = acts.every(function (a) { return dn[a.id]; });
         out.push({ date: dk, d: d, st: all ? 'done' : dk < tk ? 'missed' : dk === tk ? 'open' : 'next' });
@@ -1992,14 +2038,14 @@ html { background: var(--bg); }
 
   function renderCoach() {
     if (!el.coach) return;
-    var acts = plan.filter(function (a) { return a.day === dayIdx && !isBonus(a); });
+    var acts = rowsOn(iso(weekStart), dayIdx).filter(function (a) { return !isBonus(a); });
     var dn = weekDone();
     var n = acts.filter(function (a) { return dn[a.id]; }).length;
     var mood, text;
     var dd = addDays(weekStart, dayIdx);
     if (missedTraining(dd)) { mood = 'angry'; text = 'This one is still open. ' + (n ? (acts.length - n) + ' left.' : 'You have not started.') + ' Do it, or it counts as missed.'; }
     else if (!acts.length) {
-      var bact = plan.filter(function (a) { return a.day === dayIdx && isBonus(a); }), bdn = bact.filter(function (a) { return dn[a.id]; }).length;
+      var bact = rowsOn(iso(weekStart), dayIdx).filter(function (a) { return isBonus(a); }), bdn = bact.filter(function (a) { return dn[a.id]; }).length;
       if (bact.length && bdn) { mood = 'cheer'; text = 'Bonus done. Extra credit, nice!'; }
       else if (bact.length) { mood = 'rest'; text = 'Bonus day. A walk or an easy ride is optional, a nice extra.'; }
       else { mood = 'rest'; text = 'Rest day. Recover, stretch, eat your protein.'; }
@@ -2070,9 +2116,10 @@ html { background: var(--bg); }
   function reward(a, k) {
     var dn = done[k] || {};
     if (isBonus(a)) { toast('Bonus done. About +' + round5(kcalFor(a)) + ' kcal extra.'); return true; }
-    var dayActs = plan.filter(function (x) { return x.day === a.day && !isBonus(x); });
+    var calDay = planDay(k, a.day);
+    var dayActs = rowsOn(k, calDay).filter(function (x) { return !isBonus(x); });
     if (!dayActs.every(function (x) { return dn[x.id]; })) return false;
-    var ck = k + '|' + a.day;
+    var ck = k + '|' + calDay;
     if (cel[ck]) { toast('Session already counted for this day. It only counts once.'); return true; }
     cel[ck] = 1;
     save();
@@ -2307,11 +2354,11 @@ html { background: var(--bg); }
 
   /* ===== NUTRITION BLOCK START ===== */
   var HEIGHT_CM = 178, AGE_Y = 36;
+  // Only dinner is suggested. Breakfast, lunch and snacks are logged with "Add food" below, and count towards the day.
   var SLOTS = [
-    { k: 'b', label: 'Breakfast', pool: 'b', main: 1 },
-    { k: 'l', label: 'Lunch', pool: 'l', main: 1 },
     { k: 'd', label: 'Dinner', pool: 'd', main: 1 }
   ];
+  var DSHARE = 0.45; // dinner is sized to about 45% of the day's calories
   function D(id, pool, name, kcal, p, c, f, ing, how) { return { id: id, pool: pool, name: name, kcal: kcal, p: p, c: c, f: f, ing: ing, how: how }; }
   // One portion each. Values are rough estimates. No pork in any dish.
   var DISHES = [
@@ -2334,6 +2381,25 @@ html { background: var(--bg); }
     D('d5', 'd', 'Turkey meatballs and pasta', 545, 43, 71, 7, '150 g turkey mince, 80 g pasta (dry), 150 g tomato sauce, 1 egg white, oregano', 'Mix the mince with the egg white and oregano, roll into balls, bake at 200 C for 15 minutes. Boil the pasta and warm the sauce.'),
     D('d6', 'd', 'Chicken thigh traybake', 530, 45, 53, 15, '2 skinless chicken thighs, 250 g potatoes, carrots, 1 onion, paprika, 1 tsp oil', 'Put everything on a tray with the oil and paprika. Roast at 200 C for 35 minutes.'),
     D('d7', 'd', 'Cod with rice and peas', 520, 47, 72, 6, '200 g cod fillet, 80 g rice (dry), 80 g peas, 1 tsp butter, lemon', 'Cook the rice, bake or pan-fry the cod for 8 minutes, warm the peas, finish with butter and lemon.'),
+    D('d8', 'd', 'Chicken parmigiana, light', 590, 53, 64, 12, '160 g chicken breast, 80 g pasta (dry), 120 g tomato sauce, 30 g mozzarella, basil', 'Pan-fry the flattened chicken 5 minutes per side, top with sauce and mozzarella, grill 3 minutes until melted. Serve on the boiled pasta.'),
+    D('d9', 'd', 'Shrimp scampi pasta', 460, 38, 59, 8, '150 g shrimp, 80 g pasta (dry), 2 garlic cloves, 1 tsp olive oil, lemon, parsley', 'Boil the pasta. Fry the garlic in the oil for 30 seconds, add the shrimp for 3 minutes, squeeze in lemon, toss with the pasta and parsley.'),
+    D('d10', 'd', 'Turkey bolognese spaghetti', 590, 42, 70, 13, '150 g turkey mince, 80 g spaghetti (dry), 150 g tomato sauce, 1 onion, 1 carrot, oregano', 'Brown the mince with the diced onion and carrot, add the sauce and oregano and simmer 15 minutes. Serve over the spaghetti.'),
+    D('d11', 'd', 'Lemon chicken risotto', 605, 52, 76, 9, '160 g chicken breast, 80 g risotto rice (dry), 80 g peas, 15 g parmesan, lemon, 400 ml stock', 'Brown the diced chicken, stir in the rice, add stock a ladle at a time for 18 minutes, fold in the peas, parmesan and lemon.'),
+    D('d12', 'd', 'Cod puttanesca with potatoes', 470, 42, 57, 8, '200 g cod fillet, 150 g passata, 250 g potatoes, 1 tsp olive oil, capers, garlic', 'Boil the potatoes. Simmer the passata with garlic and capers for 8 minutes, lay the cod in it, cover and cook 8 minutes.'),
+    D('d13', 'd', 'Tuna and white bean pasta', 640, 54, 98, 6, '80 g pasta (dry), 1 can tuna (120 g drained), 150 g white beans (cooked), 150 g chopped tomatoes, garlic', 'Boil the pasta. Warm the tomatoes with garlic, stir in the beans and tuna, toss with the pasta.'),
+    D('d14', 'd', 'Beef ragu with polenta', 540, 38, 53, 15, '150 g lean beef mince, 150 g passata, 60 g instant polenta, 1 onion, rosemary', 'Brown the mince and onion, add passata and rosemary, simmer 20 minutes. Stir the polenta into boiling water for 5 minutes and spoon the ragu on top.'),
+    D('d15', 'd', 'Chicken caprese and potatoes', 620, 50, 66, 18, '160 g chicken breast, 40 g mozzarella, 150 g tomatoes, 300 g potatoes, 1 tsp olive oil, basil', 'Roast the cubed potatoes at 200 C for 25 minutes. Pan-fry the chicken, top with sliced tomato and mozzarella, cover until melted, finish with basil.'),
+    D('d16', 'd', 'Teriyaki chicken rice bowl', 600, 49, 86, 6, '170 g chicken breast, 80 g rice (dry), 150 g broccoli, 2 tbsp teriyaki sauce', 'Cook the rice. Fry the chicken strips 6 minutes, add the teriyaki sauce for the last minute. Steam the broccoli and serve everything over the rice.'),
+    D('d17', 'd', 'Thai basil chicken with rice', 530, 45, 61, 8, '170 g chicken breast, 70 g rice (dry), 100 g green beans, 1 tsp oil, chili, garlic, basil, 1 tbsp fish sauce', 'Cook the rice. Stir-fry the minced chicken with garlic, chili and beans for 6 minutes, add fish sauce and a handful of basil.'),
+    D('d18', 'd', 'Shrimp pad thai, light', 560, 41, 70, 12, '170 g shrimp, 70 g rice noodles (dry), 1 egg, bean sprouts, 1 tsp oil, 2 tbsp pad thai sauce, lime', 'Soak the noodles. Fry the shrimp 3 minutes, push aside and scramble the egg, add noodles, sprouts and sauce for 2 minutes. Finish with lime.'),
+    D('d19', 'd', 'Salmon teriyaki with rice', 630, 38, 80, 19, '140 g salmon fillet, 70 g rice (dry), 150 g broccoli, 1 tbsp teriyaki sauce', 'Cook the rice. Pan-fry the salmon skin side down 4 minutes, flip for 2, glaze with the sauce. Steam the broccoli and serve together.'),
+    D('d20', 'd', 'Beef and broccoli stir-fry', 600, 44, 77, 13, '150 g lean beef steak, 200 g broccoli, 70 g rice (dry), 2 tbsp soy sauce, 1 tsp oil, ginger, garlic', 'Cook the rice. Sear the sliced beef 2 minutes in the oil, add broccoli, ginger and garlic for 4 minutes, finish with soy sauce.'),
+    D('d21', 'd', 'Light chicken tikka masala', 600, 54, 68, 9, '170 g chicken breast, 100 g fat-free Greek yogurt, 150 g passata, 70 g rice (dry), tikka masala spice, 1 tsp oil', 'Marinate the chicken in half the yogurt and spice for 10 minutes. Fry it, add passata and the rest of the spice, simmer 8 minutes, stir in the remaining yogurt off the heat. Serve with the rice.'),
+    D('d22', 'd', 'Miso cod with rice and pak choi', 500, 43, 70, 4, '200 g cod fillet, 80 g rice (dry), 150 g pak choi, 1 tbsp miso paste, ginger', 'Brush the cod with miso and ginger, bake at 200 C for 10 minutes. Cook the rice, steam the pak choi for 3 minutes.'),
+    D('d23', 'd', 'Tofu and edamame stir-fry', 610, 42, 66, 20, '200 g firm tofu, 100 g edamame, 60 g rice (dry), 100 g mixed veg, 1 tbsp soy sauce, 1 tsp oil', 'Fry the cubed tofu in the oil until golden, add the veg and edamame for 4 minutes, season with soy sauce. Serve over the rice.'),
+    D('d24', 'd', 'Baked chicken katsu with rice', 570, 47, 78, 7, '170 g chicken breast, 25 g panko, 1 egg white, 70 g rice (dry), 100 g shredded cabbage, katsu sauce', 'Dip the flattened chicken in the egg white, then the panko. Bake at 210 C for 18 minutes. Serve on the rice with the cabbage and a spoon of katsu sauce.'),
+    D('d25', 'd', 'Beef bulgogi bowl', 580, 41, 72, 15, '150 g lean beef steak, 70 g rice (dry), 100 g kimchi or mixed veg, 1 tbsp soy sauce, 1 tsp sesame oil, 1 tsp sugar', 'Marinate the sliced beef in soy, sesame oil and sugar for 10 minutes. Sear for 3 minutes. Serve over the rice with the kimchi or veg.'),
+    D('d26', 'd', 'Chicken pho', 450, 42, 52, 5, '170 g chicken breast, 60 g rice noodles (dry), 500 ml chicken stock, bean sprouts, lime, herbs, 1 tbsp fish sauce', 'Simmer the stock with fish sauce and ginger, poach the sliced chicken 6 minutes, add the soaked noodles for 1 minute. Top with sprouts, lime and herbs.'),
   ];
   var nutDay = todayIdx, nutOpen = null;
 
@@ -2362,7 +2428,7 @@ html { background: var(--bg); }
   function planFor(ids, T) {
     var sn = 0, mn = 0;
     SLOTS.forEach(function (s, i) { var d = dishById(ids[i]); if (d) { if (s.main) mn += d.kcal; else sn += d.kcal; } });
-    var m = mn ? (T - sn) / mn : 1;
+    var m = mn ? (T * DSHARE - sn) / mn : 1;
     m = Math.max(0.75, Math.min(1.75, Math.round(m * 4) / 4));
     var items = [], tot = { kcal: 0, p: 0, c: 0, f: 0 };
     SLOTS.forEach(function (s, i) {
@@ -2387,7 +2453,7 @@ html { background: var(--bg); }
         ids.push(d.id);
       });
       var pl = planFor(ids, T.kcal);
-      var sc = Math.abs(pl.tot.kcal - T.kcal) + 4 * Math.max(0, T.p - pl.tot.p) + Math.random() * 25;
+      var sc = Math.abs(pl.tot.kcal - T.kcal * DSHARE) + 4 * Math.max(0, T.p * DSHARE - pl.tot.p) + Math.random() * 25;
       if (sc < bs) { bs = sc; best = ids; }
     }
     return best;
@@ -2540,7 +2606,7 @@ html { background: var(--bg); }
     renderNutrition();
   }
   function customHtml(c) {
-    var b = nutBuild, h = '<div><h3>Cooked or drank something else?</h3>';
+    var b = nutBuild, h = '<div><h3>Breakfast, lunch and snacks</h3><p class="fine" style="margin:0 0 6px">Add what you ate or drank. It counts towards today\'s calories and protein.</p>';
     var ex = c.day.extra || [];
     if (ex.length) {
       h += '<div class="rows">' + ex.map(function (x, i) {
@@ -2603,21 +2669,34 @@ html { background: var(--bg); }
     Object.keys(src.days).forEach(function (k) {
       var d = src.days[k];
       if (!/^\d{4}-\d{2}-\d{2}$/.test(k) || !d || !Array.isArray(d.ids)) return;
-      // Older saves had five meals (breakfast, lunch, snack, dinner, evening snack). Keep breakfast, lunch and dinner.
+      // Older saves had five meals (breakfast, lunch, snack, dinner, evening snack), then three. Only dinner is suggested now.
+      // Breakfast and lunch that were already ticked become "Add food" entries, so the day's totals stay the same.
+      var carry = [];
       if (d.ids.length === 5) d = { ids: [d.ids[0], d.ids[1], d.ids[3]], eaten: d.eaten, extra: d.extra };
+      if (d.ids.length === 3) {
+        var bd = dishById(d.ids[0]), ld = dishById(d.ids[1]), dd = dishById(d.ids[2]);
+        if (!bd || !ld || !dd || bd.pool !== 'b' || ld.pool !== 'l' || dd.pool !== 'd') return;
+        var wi = (new Date(k + 'T12:00:00').getDay() + 6) % 7, Tn = nutriTargets(isTrain(wi));
+        var m3 = Math.max(0.75, Math.min(1.75, Math.round(Tn.kcal / (bd.kcal + ld.kcal + dd.kcal) * 4) / 4));
+        [bd, ld].forEach(function (x, ix) {
+          if (d.eaten && d.eaten[ix === 0 ? 'b' : 'l']) carry.push({ n: x.name, t: 'dish', kcal: Math.round(x.kcal * m3), p: Math.round(x.p * m3), c: Math.round(x.c * m3), f: Math.round(x.f * m3) });
+        });
+        d = { ids: [d.ids[2]], eaten: { d: d.eaten && d.eaten.d ? 1 : 0 }, extra: d.extra };
+        if (!d.eaten.d) d.eaten = {};
+      }
       if (d.ids.length !== SLOTS.length) return;
       var ok = d.ids.every(function (id, i) { var x = dishById(id); return x && x.pool === SLOTS[i].pool; });
       if (!ok) return;
       var e = {};
       SLOTS.forEach(function (s) { if (d.eaten && d.eaten[s.k]) e[s.k] = 1; });
-      var ex = Array.isArray(d.extra) ? d.extra.slice(0, 30).map(cleanExtra).filter(Boolean) : [];
+      var ex = (Array.isArray(d.extra) ? d.extra : []).concat(carry).slice(0, 30).map(cleanExtra).filter(Boolean);
       nd[k] = { ids: d.ids.slice(), eaten: e, extra: ex };
     });
     nutri = { days: nd, mine: Array.isArray(src.mine) ? src.mine.slice(0, 12).map(cleanExtra).filter(Boolean) : [] };
   }
 
   function curNutri() {
-    var T = nutriTargets(isTrain(nutDay));
+    var T = nutriTargets(isTrain(planDay(iso(todayMon), nutDay)));
     var key = iso(addDays(todayMon, nutDay));
     var day = getDay(key, T);
     return { T: T, key: key, day: day, pl: planFor(day.ids, T.kcal) };
@@ -2656,15 +2735,15 @@ html { background: var(--bg); }
     var c = curNutri(), T = c.T, pl = c.pl, ea = eatenTot(c);
     var names = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
     var chips = '<div class="lchips" role="group" aria-label="Day">' + names.map(function (n, i) {
-      return '<button type="button" data-act="nday" data-i="' + i + '" aria-pressed="' + (i === nutDay) + '">' + n + (isTrain(i) ? ' •' : '') + '</button>';
+      return '<button type="button" data-act="nday" data-i="' + i + '" aria-pressed="' + (i === nutDay) + '">' + n + (isTrain(planDay(iso(todayMon), i)) ? ' •' : '') + '</button>';
     }).join('') + '</div>';
     var html = '<div>' + chips +
-      '<p class="line"><b>' + (isTrain(nutDay) ? 'Lifting day' : 'Rest or cardio day') + '</b>: ' +
-      (isTrain(nutDay) ? '2000 kcal, 200 more than on rest days. Eat your carbs around the session.' : '1800 kcal, protein stays high.') + '</p>' +
+      '<p class="line"><b>' + (isTrain(planDay(iso(todayMon), nutDay)) ? 'Lifting day' : 'Rest or cardio day') + '</b>: ' +
+      (isTrain(planDay(iso(todayMon), nutDay)) ? '2000 kcal, 200 more than on rest days. Eat your carbs around the session.' : '1800 kcal, protein stays high.') + '</p>' +
       bar(ea.kcal, T.kcal, 'Calories') + bar(ea.p, T.p, 'Protein') +
       '<p class="fine">Left today: ' + Math.max(0, T.kcal - ea.kcal) + ' kcal and ' + Math.max(0, T.p - ea.p) + ' g protein.</p><p class="fine">Daily target: ' + T.kcal + ' kcal, ' + T.p + ' g protein, about ' + T.c + ' g carbs and ' + T.f + ' g fat. Tick a meal when you eat it.</p></div>';
 
-    html += '<div><h3>Meals</h3><ul class="meals">' + pl.items.map(function (it) {
+    html += '<div><h3>Dinner</h3><ul class="meals">' + pl.items.map(function (it) {
       var on = !!c.day.eaten[it.slot.k], open = nutOpen === it.slot.k;
       return '<li class="meal' + (on ? ' on' : '') + '"><div class="mtop">' +
         '<button type="button" class="mchk" data-act="neat" data-id="' + it.slot.k + '" aria-pressed="' + on + '" aria-label="Eaten: ' + esc(it.dish.name) + '">' + (on ? CHECK : '') + '</button>' +
@@ -2675,7 +2754,7 @@ html { background: var(--bg); }
         (open ? '<div class="mdet"><p><b>Ingredients (1 portion' + (it.mult !== 1 ? ', multiply by ' + multText(it.mult) : '') + ')</b><br>' + esc(it.dish.ing) + '</p><p><b>How</b><br>' + esc(it.dish.how) + '</p></div>' : '') +
         '</li>';
     }).join('') + '</ul>' +
-      '<p class="fine">Plan total: ' + pl.tot.kcal + ' kcal, ' + pl.tot.p + ' g protein, ' + pl.tot.c + ' g carbs, ' + pl.tot.f + ' g fat. Swipe a row sideways and tap a dish to switch it. Portions scale to the day\'s target.</p></div>';
+      '<p class="fine">Plan total: ' + pl.tot.kcal + ' kcal, ' + pl.tot.p + ' g protein, ' + pl.tot.c + ' g carbs, ' + pl.tot.f + ' g fat. Swipe the row sideways and tap a dish to switch it. Dinner is sized to about 45% of the day, so about ' + Math.max(0, T.kcal - pl.tot.kcal) + ' kcal are left for breakfast, lunch and snacks. Add those below.</p></div>';
 
     html += customHtml(c);
 
@@ -2709,8 +2788,9 @@ html { background: var(--bg); }
 
   function trainDay(k, i) {
     var dn = done[k] || {}, planned = 0, base = 0, all = 0, lifts = 0, bn = 0, bmin = 0, bst = 0;
+    var pdi = planDay(k, i);
     plan.forEach(function (a) {
-      if (a.day !== i) return;
+      if (a.day !== pdi) return;
       if (!isBonus(a)) planned += a.min || 0;
       if (dn[a.id]) {
         all += a.min || 0;
@@ -2723,7 +2803,7 @@ html { background: var(--bg); }
   function nutriDay(k, i) {
     var day = nutri.days[iso(addDays(fromIso(k), i))];
     if (!day || !Array.isArray(day.ids)) return null;
-    var T = nutriTargets(isTrain(i)), pl = planFor(day.ids, T.kcal), kc = 0, p = 0;
+    var T = nutriTargets(isTrain(planDay(k, i))), pl = planFor(day.ids, T.kcal), kc = 0, p = 0;
     pl.items.forEach(function (it) { if (day.eaten && day.eaten[it.slot.k]) { kc += it.kcal; p += it.p; } });
     (day.extra || []).forEach(function (x) { kc += x.kcal; p += x.p; });
     if (kc <= 0) return null;
@@ -2747,7 +2827,7 @@ html { background: var(--bg); }
       bMin += td.bmin; bStretch += td.bst;
       if (i <= lastDay) {
         plannedMin += td.planned; baseMin += td.base;
-        if (plan.some(function (a) { return a.day === i && a.cat === 'str' && !isBonus(a); })) strTarget++;
+        if (rowsOn(k, i).some(function (a) { return a.cat === 'str' && !isBonus(a); })) strTarget++;
       }
       if (td.lifts >= 2) strDays++;
       if (td.base > 0) actDays++;
@@ -2809,8 +2889,8 @@ html { background: var(--bg); }
     else head = 'A new week is a clean start. Show up for the first session.';
 
     var tdy0 = trainDay(iso(todayMon), todayIdx), tdone0 = 0;
-    plan.forEach(function (a) { if (a.day === todayIdx && !isBonus(a) && (done[iso(todayMon)] || {})[a.id]) tdone0++; });
-    var tcount0 = plan.filter(function (a) { return a.day === todayIdx && !isBonus(a); }).length;
+    rowsOn(iso(todayMon), todayIdx).forEach(function (a) { if (!isBonus(a) && (done[iso(todayMon)] || {})[a.id]) tdone0++; });
+    var tcount0 = rowsOn(iso(todayMon), todayIdx).filter(function (a) { return !isBonus(a); }).length;
     var slack = slackMsg();
     if (slack) head = slack;
     var hmood = slack ? 'angry' : notStarted ? 'idea' : (hasLast && lw.stars >= 4) ? 'cheer' : (!tdy0.planned ? 'rest' : tdone0 >= tcount0 ? 'cheer' : 'work');
@@ -2827,8 +2907,8 @@ html { background: var(--bg); }
       ring(50, ws.trainFrac, 'rt') + ring(38, Math.min(1, ws.strDays / 3), 'rs') + ring(26, ws.nutriOn ? ws.nutr : 0, 'rn') + '</g></svg>' +
       '<div class="rlegend"><div style="--d:var(--acc)"><span>TRAINING</span><b>' + rT + '%</b></div><div style="--d:var(--acc2)"><span>STRENGTH</span><b>' + Math.min(3, ws.strDays) + ' of 3 days</b></div><div style="--d:var(--grn)"><span>NUTRITION</span><b>' + rN + '%</b></div></div></div>';
     var tdy = trainDay(iso(todayMon), todayIdx), dnames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-    var tcount = 0, tdone = 0, bonusToday = plan.some(function (a) { return a.day === todayIdx && isBonus(a); });
-    plan.forEach(function (a) { if (a.day === todayIdx && !isBonus(a)) { tcount++; if ((done[iso(todayMon)] || {})[a.id]) tdone++; } });
+    var tcount = 0, tdone = 0, bonusToday = rowsOn(iso(todayMon), todayIdx).some(function (a) { return isBonus(a); });
+    rowsOn(iso(todayMon), todayIdx).forEach(function (a) { if (!isBonus(a)) { tcount++; if ((done[iso(todayMon)] || {})[a.id]) tdone++; } });
     html += '<div class="todaycard"><div class="tt">Today · ' + dnames[todayIdx] + '</div><div class="line" style="margin:0">' +
       (tdy.planned ? hm(tdy.planned) + ' planned · ' + tdone + ' of ' + tcount + ' done' : bonusToday ? 'Bonus day. Optional, but it earns extra credit.' : 'Rest day. Keep it light and eat enough protein.') + '</div>' +
       (tdy.planned ? '<div class="tbar"><i style="width:' + Math.round(tcount ? tdone / tcount * 100 : 0) + '%"></i></div><button type="button" class="primary" data-act="tab" data-id="workout">Open today\'s workout</button>'
@@ -2896,7 +2976,7 @@ html { background: var(--bg); }
   var cloudFailed = false;
   var saving = false, dirty = false, saveTimer = null;
 
-  function serialize() { return { v: 9, pv: 3, cel: cel, seen: seen, startKg: startKg, startFat: startFat, plan: plan, done: done, logs: logs, recs: recs, level: level, body: bodyKg, weigh: weigh, goalKg: goalKg, goalMonths: goalMonths, nutri: nutriSerialize() }; }
+  function serialize() { return { v: 9, pv: 3, swp: swp, cel: cel, seen: seen, startKg: startKg, startFat: startFat, plan: plan, done: done, logs: logs, recs: recs, level: level, body: bodyKg, weigh: weigh, goalKg: goalKg, goalMonths: goalMonths, nutri: nutriSerialize() }; }
   function apply(data) {
     coreCache = null;
     if (!data || typeof data !== 'object') return;
@@ -2908,6 +2988,11 @@ html { background: var(--bg); }
     else if (bw >= 30 && bw <= 250) bodyKg = bw;
     if (data.recs && typeof data.recs === 'object') recs = data.recs;
     cel = data.cel && typeof data.cel === 'object' ? data.cel : {};
+    swp = {};
+    if (data.swp && typeof data.swp === 'object') Object.keys(data.swp).forEach(function (wk) {
+      var p = data.swp[wk];
+      if (/^\d{4}-\d{2}-\d{2}$/.test(wk) && Array.isArray(p) && p.length === 7 && p.every(function (v) { return v === (v | 0) && v >= 0 && v < 7; }) && p.slice().sort().join('') === '0123456') swp[wk] = p.slice();
+    });
     if (data.weigh && typeof data.weigh === 'object') {
       var wc = {};
       Object.keys(data.weigh).forEach(function (k) {
@@ -2982,7 +3067,7 @@ html { background: var(--bg); }
       // Older saves: sessions already finished count as celebrated, so they are not celebrated a second time.
       Object.keys(done).forEach(function (wk) {
         for (var di = 0; di < 7; di++) {
-          var core = plan.filter(function (x) { return x.day === di && !isBonus(x); });
+          var core = rowsOn(wk, di).filter(function (x) { return !isBonus(x); });
           if (core.length && core.every(function (x) { return (done[wk] || {})[x.id]; })) cel[wk + '|' + di] = 1;
         }
       });
@@ -3436,7 +3521,7 @@ html { background: var(--bg); }
     var act = t.getAttribute('data-act');
     if (act === 'export') exportData();
     else if (act === 'toggle') toggle(t.getAttribute('data-id'));
-    else if (act === 'day') { dayIdx = +t.getAttribute('data-i'); render(); }
+    else if (act === 'day') { dayIdx = +t.getAttribute('data-i'); swapOpen = false; render(); }
     else if (act === 'tab') showTab(t.getAttribute('data-id'));
     else if (act === 'level') {
       var lvl = t.getAttribute('data-id');
@@ -3448,6 +3533,21 @@ html { background: var(--bg); }
       try { localStorage.setItem('jym:fx', on ? '1' : '0'); } catch (er) {}
       renderSettings();
       if (on) { confetti(30); sparkles(t); }
+    }
+    else if (act === 'swapopen') { swapOpen = true; renderSwap(); }
+    else if (act === 'swapcancel') { swapOpen = false; renderSwap(); }
+    else if (act === 'swapdo') {
+      var sk = iso(weekStart), sj = +t.getAttribute('data-i');
+      if (swapElig(sk, dayIdx) && swapElig(sk, sj) && sj !== dayIdx) {
+        var perm = [0, 1, 2, 3, 4, 5, 6]; perm[dayIdx] = sj; perm[sj] = dayIdx;
+        swp[sk] = perm; swapOpen = false; save(); render();
+        toast(DN[dayIdx] + ' and ' + DN[sj] + ' are swapped for this week.');
+      }
+    }
+    else if (act === 'swapundo') {
+      var uk = iso(weekStart), up = swp[uk], ud = [];
+      if (up) for (var uc = 0; uc < 7; uc++) if (up[uc] !== uc) ud.push(uc);
+      if (up && ud.length === 2 && swapElig(uk, ud[0]) && swapElig(uk, ud[1])) { delete swp[uk]; save(); render(); toast('Swap undone.'); }
     }
     else if (act === 'chr') {
       var cm = t.getAttribute('data-id');
@@ -3749,8 +3849,8 @@ html { background: var(--bg); }
       var d = new Date(), k = iso(d);
       if (d.getHours() < 17 || k < START || tab !== 'welcome') return false;
       var i = (d.getDay() + 6) % 7, wk = iso(mondayOf(d));
-      var acts = plan.filter(function (a) { return a.day === i && !isBonus(a); });
-      if (!acts.length || !coreMap()[i] || !isTrain(i)) return false;
+      var acts = rowsOn(wk, i).filter(function (a) { return !isBonus(a); }), pdn = planDay(wk, i);
+      if (!acts.length || !coreMap()[pdn] || !isTrain(pdn)) return false;
       var dn = done[wk] || {};
       if (acts.some(function (a) { return dn[a.id]; })) return false;
       if (localStorage.getItem('jym:nd') === k) return false;
