@@ -3047,8 +3047,8 @@ html { background: var(--bg); }
     rowsOn(iso(todayMon), todayIdx).forEach(function (a) { if (!isBonus(a)) { tcount++; if ((done[iso(todayMon)] || {})[a.id]) tdone++; } });
     html += '<div class="todaycard"><div class="tt">Today · ' + dnames[todayIdx] + '</div><div class="line" style="margin:0">' +
       (tdy.planned ? ((tm[iso(todayMon) + '|' + todayIdx] || {}).m ? hm(tm[iso(todayMon) + '|' + todayIdx].m) + ' actual' : hm(tdy.planned) + ' planned') + ' · ' + tdone + ' of ' + tcount + ' done' : bonusToday ? 'Bonus day. Optional, but it earns extra credit.' : 'Rest day. Keep it light and eat enough protein.') + '</div>' +
-      (tdy.planned ? '<div class="tbar"><i style="width:' + Math.round(tcount ? tdone / tcount * 100 : 0) + '%"></i></div><button type="button" class="primary" data-act="tab" data-id="workout">Open today\'s workout</button>'
-        : bonusToday ? '<button type="button" class="primary" data-act="tab" data-id="workout">See the bonus options</button>' : '') + '</div>';
+      (tdy.planned ? '<div class="tbar"><i style="width:' + Math.round(tcount ? tdone / tcount * 100 : 0) + '%"></i></div><button type="button" class="primary" data-act="today">Open today\'s workout</button>'
+        : bonusToday ? '<button type="button" class="primary" data-act="today">See the bonus options</button>' : '') + '</div>';
 
     // star rating
     var allMin = 0, allDays = 0, allBonus = 0;
@@ -3656,6 +3656,7 @@ html { background: var(--bg); }
       if (!shown) setTimeout(fxSetPop, 40);
     }
   }
+  function goToday() { weekStart = todayMon; dayIdx = todayIdx; swapOpen = false; openId = null; render(); showTab('workout'); }
   function disarm() { restoreArmed = false; clearTimeout(restoreTimer); }
 
   document.addEventListener('click', function (e) {
@@ -3672,6 +3673,7 @@ html { background: var(--bg); }
       else { tmArm = false; delete tm[iso(todayMon) + '|' + todayIdx]; save(); render(); }
     }
     else if (act === 'day') { dayIdx = +t.getAttribute('data-i'); swapOpen = false; render(); }
+    else if (act === 'today') goToday();
     else if (act === 'tab') showTab(t.getAttribute('data-id'));
     else if (act === 'level') {
       var lvl = t.getAttribute('data-id');
@@ -4020,7 +4022,7 @@ html { background: var(--bg); }
         (sk.cur ? ' Your streak is at ' + sk.cur + (sk.cur === 1 ? ' session.' : ' sessions.') : '') + '</p>' +
         '<div class="nb"><button type="button" class="go">Start the session</button><button type="button" class="later">Later</button></div></div>';
       var close = function () { if (n.parentNode) n.parentNode.removeChild(n); };
-      n.querySelector('.go').addEventListener('click', function () { close(); showTab('workout'); });
+      n.querySelector('.go').addEventListener('click', function () { close(); goToday(); });
       n.querySelector('.later').addEventListener('click', close);
       n.addEventListener('click', function (e) { if (e.target === n) close(); });
       document.body.appendChild(n);
