@@ -448,6 +448,7 @@ input[type="text"]:focus, input[type="number"]:focus, select:focus { border-colo
 .xbar { height: 14px; border-radius: 7px; background: var(--line); overflow: hidden; margin: 6px 0 4px; }
 .xbar i { display: block; height: 100%; border-radius: 7px; background: linear-gradient(#FFD84D, #F5A800); }
 .lvfine { font-size: 12px; font-weight: 700; color: var(--muted); }
+.lvfine.lvgate { margin-top: 3px; font-weight: 600; line-height: 1.35; }
 /* badges */
 .bgrid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px 6px; }
 .bcell { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 8px 2px 6px; background: transparent; border: 2px solid transparent; border-radius: 16px; min-width: 0; }
@@ -2031,47 +2032,76 @@ html { background: var(--bg); }
       var d = nutri.days[k] || {};
       meals += Object.keys(d.eaten || {}).length + (d.extra || []).length;
     });
+    Object.keys(nutri.hist || {}).forEach(function (k) { if (!(nutri.days || {})[k]) meals += nutri.hist[k].m; });
     var keys = weighKeys(), curKg = keys.length ? weigh[keys[keys.length - 1]].kg : startKg;
     var goalPct = Math.max(0, Math.min(100, (startKg - curKg) / Math.max(0.1, startKg - goalKg) * 100));
     return { bdays: bd, bmin: bm, bstr: bs, act: act, strd: strd, hours: mins / 60, top: top, meals: meals, weighIns: keys.length, streak: streaks().max, goalPct: goalPct };
   }
+  // Tiers and levels follow the weight goal. A level always costs the same XP, and every tier has more levels than the one before.
+  // Badge targets are about 85 percent of a perfect plan at the end of each tier, so the whole run ends when the goal does.
+  var GATE_BADGES = ['sess', 'str', 'streak', 'weigh', 'meals', 'hours', 'top', 'goal'];
+  function gameScale() {
+    var W = Math.max(8, nWeeks()), c = [6, 14, 24, 36], wt = c.map(function (x) { return W * x / 36; });
+    function f(per, mn) {
+      var o = wt.map(function (w) { return Math.max(mn, Math.ceil(w * per - 1e-9)); });
+      for (var i = 1; i < 4; i++) if (o[i] <= o[i - 1]) o[i] = o[i - 1] + 1;
+      return o;
+    }
+    return { W: W, cum: c, xpl: Math.max(50, Math.round(W * 14.7 / 10) * 10),
+      th: { sess: f(2.55, 3), str: f(2.4, 3), streak: f(0.3, 2), weigh: f(0.8, 3), meals: f(4.2, 10), hours: f(1.6, 4), top: f(0.3, 1), goal: [18, 40, 65, 100], bonus: [4, 12, 24, 40], stretch: [8, 30, 60, 100] } };
+  }
   function badgeDefs(g) {
+    var T = gameScale().th;
     return [
-      { k: 'sess', sym: 'calendar', label: 'Sessions', val: g.act, th: [8, 24, 48], unit: ' days', what: 'strength session days with something ticked' },
-      { k: 'str', sym: 'dumbbell', label: 'Strength', val: g.strd, th: [6, 18, 36], unit: ' days', what: 'strength days' },
-      { k: 'streak', sym: 'flame', label: 'Streak', val: g.streak, th: [2, 6, 12], unit: ' wks', what: 'weeks in a row with every strength session done' },
-      { k: 'weigh', sym: 'scale', label: 'Weigh-ins', val: g.weighIns, th: [3, 8, 16], unit: '', what: 'weekly weigh-ins' },
-      { k: 'meals', sym: 'apple', label: 'Meals', val: g.meals, th: [15, 60, 150], unit: '', what: 'meals ticked' },
-      { k: 'hours', sym: 'clock', label: 'Hours', val: Math.round(g.hours * 10) / 10, th: [5, 20, 50], unit: ' h', what: 'hours of strength sessions' },
-      { k: 'top', sym: 'trophy', label: 'Top weeks', val: g.top, th: [1, 3, 8], unit: '', what: 'five-star weeks' },
-      { k: 'bonus', sym: 'bolt', label: 'Bonus', val: g.bdays, th: [4, 12, 30], unit: ' days', what: 'days you did extra bonus exercises' },
-      { k: 'stretch', sym: 'stretch', label: 'Stretch', val: g.bstr, th: [8, 30, 75], unit: '', what: 'posture stretches ticked' },
-      { k: 'goal', sym: 'target', label: 'Goal', val: Math.round(g.goalPct), th: [25, 60, 100], unit: '%', what: 'of the way to your goal weight' }
+      { k: 'sess', sym: 'calendar', label: 'Sessions', val: g.act, th: T.sess, unit: ' days', what: 'strength session days with something ticked' },
+      { k: 'str', sym: 'dumbbell', label: 'Strength', val: g.strd, th: T.str, unit: ' days', what: 'strength days' },
+      { k: 'streak', sym: 'flame', label: 'Streak', val: g.streak, th: T.streak, unit: ' wks', what: 'weeks in a row with every strength session done' },
+      { k: 'weigh', sym: 'scale', label: 'Weigh-ins', val: g.weighIns, th: T.weigh, unit: '', what: 'weekly weigh-ins' },
+      { k: 'meals', sym: 'apple', label: 'Meals', val: g.meals, th: T.meals, unit: '', what: 'meals ticked' },
+      { k: 'hours', sym: 'clock', label: 'Hours', val: Math.round(g.hours * 10) / 10, th: T.hours, unit: ' h', what: 'hours of strength sessions' },
+      { k: 'top', sym: 'trophy', label: 'Top weeks', val: g.top, th: T.top, unit: '', what: 'five-star weeks' },
+      { k: 'bonus', sym: 'bolt', label: 'Bonus', val: g.bdays, th: T.bonus, unit: ' days', what: 'days you did extra bonus exercises' },
+      { k: 'stretch', sym: 'stretch', label: 'Stretch', val: g.bstr, th: T.stretch, unit: '', what: 'posture stretches ticked' },
+      { k: 'goal', sym: 'target', label: 'Goal', val: Math.round(g.goalPct), th: T.goal, unit: '%', what: 'of the way to your goal weight' }
     ].map(function (b) {
       var tier = 0;
-      while (tier < 3 && b.val >= b.th[tier]) tier++;
+      while (tier < 4 && b.val >= b.th[tier]) tier++;
       var prev = tier > 0 ? b.th[tier - 1] : 0;
-      b.tier = tier;
-      b.frac = tier >= 3 ? 1 : Math.max(0, Math.min(1, (b.val - prev) / (b.th[tier] - prev)));
+      b.tier = tier; // 0 locked, 1 bronze, 2 silver, 3 gold, 4 diamond
+      b.gate = GATE_BADGES.indexOf(b.k) >= 0;
+      b.frac = tier >= 4 ? 1 : Math.max(0, Math.min(1, (b.val - prev) / (b.th[tier] - prev)));
       return b;
     });
   }
   function xpInfo(g) {
+    var S = gameScale(), X = S.xpl, N = S.cum[3], defs = badgeDefs(g);
     var xp = Math.round(g.act * 50 + g.strd * 25 + g.bdays * 60 + g.bstr * 5 + g.meals * 5 + g.weighIns * 40 + g.top * 150 + g.streak * 100 + g.goalPct * 3);
-    function cum(L) { return 150 * (L - 1) + 25 * (L - 1) * (L - 2); }
-    var L = 1;
-    while (cum(L + 1) <= xp) L++;
-    var from = cum(L), to = cum(L + 1);
-    var tier = L < 5 ? 0 : L < 10 ? 1 : L < 15 ? 2 : 3;
-    return { xp: xp, level: L, from: from, to: to, frac: (xp - from) / (to - from), tier: tier, title: cap1(TIER_NAMES[tier]) + ' Lifter' };
+    function missing(t) { return defs.filter(function (b) { return b.gate && b.tier < t; }); }
+    var Lraw = Math.min(N, Math.floor(xp / X) + 1), pt = 0;
+    while (pt < 3 && Lraw > S.cum[pt] && !missing(pt + 1).length) pt++;
+    var L = Math.min(Lraw, S.cum[pt]);
+    var held = pt < 3 && Lraw > S.cum[pt];
+    var miss = missing(pt + 1), from = X * (L - 1), to = X * L;
+    var complete = pt === 3 && xp >= X * N && !miss.length;
+    var frac = held ? 1 : Math.max(0, Math.min(1, (xp - from) / (to - from)));
+    return { xp: xp, level: L, from: from, to: to, frac: frac, tier: pt, held: held, complete: complete, miss: miss, haveN: GATE_BADGES.length - miss.length, needN: GATE_BADGES.length,
+      lastLevel: S.cum[pt], xpl: X, maxLevel: N, cum: S.cum, title: cap1(TIER_NAMES[pt]) + ' Lifter' };
+  }
+  function gateText(x) {
+    if (x.complete) return 'Diamond complete. Every level and badge is done.';
+    var here = cap1(TIER_NAMES[x.tier]), nxt = x.tier < 3 ? cap1(TIER_NAMES[x.tier + 1]) : null;
+    var base = (nxt ? nxt + ' needs level ' + x.lastLevel + ' and all ' + x.needN + ' ' + here + ' badges' : 'Finish Diamond with level ' + x.maxLevel + ' and all ' + x.needN + ' Diamond badges') + ': ' + x.haveN + ' of ' + x.needN + '.';
+    return base + (x.miss.length && (x.held || x.haveN >= x.needN - 3) ? ' Missing: ' + x.miss.map(function (b) { return b.label; }).join(', ') + '.' : '');
   }
   function levelCardHtml() {
     var x = xpInfo(gameStats());
     var st = streaks().cur;
+    var nextTxt = x.held ? 'Level full. Collect the missing badges to move up' : x.complete ? 'All levels done' : (x.to - x.xp) + ' XP to level ' + (x.level + 1);
     return '<div class="lvcard"><div class="lvnum t-' + TIER_NAMES[x.tier] + '">' + x.level + '</div><div class="lvbody">' +
       '<div class="lvtop"><span class="lvt">Level ' + x.level + ' · ' + x.title + '</span><span class="lvx">' + x.xp + ' XP</span></div>' +
-      '<div class="xbar" role="img" aria-label="' + Math.round(x.frac * 100) + ' percent to level ' + (x.level + 1) + '"><i style="width:' + Math.round(x.frac * 100) + '%"></i></div>' +
-      '<div class="lvfine">' + (x.to - x.xp) + ' XP to level ' + (x.level + 1) + (st ? ' · ' + st + (st === 1 ? ' week streak' : ' week streak') : '') + '</div></div></div>';
+      '<div class="xbar" role="img" aria-label="' + Math.round(x.frac * 100) + ' percent of level ' + x.level + '"><i style="width:' + Math.round(x.frac * 100) + '%"></i></div>' +
+      '<div class="lvfine">' + nextTxt + (st ? ' · ' + st + (st === 1 ? ' week streak' : ' week streak') : '') + '</div>' +
+      '<div class="lvfine lvgate">' + esc(gateText(x)) + '</div></div></div>';
   }
   function renderGame() {
     if (!el.game) return;
@@ -2079,32 +2109,40 @@ html { background: var(--bg); }
     // announce tier-ups (silent the first time, so old progress does not flood you)
     var cur = {};
     defs.forEach(function (b) { cur[b.k] = b.tier; });
-    cur.level = x.level;
+    cur.level = x.level; cur.tier = x.tier; cur.done = x.complete ? 1 : 0;
     if (seen === null) seen = cur;
     else {
       var msgs = [], ups = [];
-      defs.forEach(function (b) { if (b.tier > (seen[b.k] || 0)) { msgs.push(cap1(TIER_NAMES[b.tier]) + ' ' + b.label + ' badge unlocked!'); ups.push(b); } });
-      var lvUp = x.level > (seen.level || 1);
-      if (lvUp) msgs.push('Level ' + x.level + '! ' + x.title + '.');
+      defs.forEach(function (b) { if (b.tier > (seen[b.k] || 0)) { msgs.push(cap1(TIER_NAMES[b.tier - 1]) + ' ' + b.label + ' badge unlocked!'); ups.push(b); } });
+      var lvUp = x.level > (seen.level || 1), tierUp = x.tier > (seen.tier || 0), finished = x.complete && !seen.done;
+      if (finished) msgs.unshift('Diamond complete! You made it.');
+      else if (tierUp) msgs.unshift(x.title + ' reached!');
+      else if (lvUp) msgs.push('Level ' + x.level + '! ' + x.title + '.');
       if (msgs.length) {
         seen = cur; save(); toast(msgs[0]);
         ups.forEach(fxBadge);
-        if (lvUp) fxLevel(x);
+        if (finished) fxLevel(x, 'Diamond complete!');
+        else if (tierUp) fxLevel(x, x.title + '!');
+        else if (lvUp) fxLevel(x);
       }
     }
     var html = levelCardHtml();
+    var LS_ = gameScale(), tn = [], lo = 1;
+    LS_.cum.forEach(function (hi, i) { tn.push(cap1(TIER_NAMES[i]) + ' ' + lo + ' to ' + hi); lo = hi + 1; });
+    html += '<p class="fine">Every level costs ' + LS_.xpl + ' XP. Tiers: ' + tn.join(', ') + '. To enter the next tier you need the last level of your tier and all ' + GATE_BADGES.length + ' plan badges at that tier: Sessions, Strength, Streak, Weigh-ins, Meals, Hours, Top weeks and Goal. Bonus and Stretch badges are optional extras that give XP, so bonus days get you through the levels faster. The targets are set so that following the plan for ' + LS_.W + ' weeks finishes Diamond, right when your weight goal is reached.</p>';
     html += '<div><h3>Badges</h3><div class="bgrid">' + defs.map(function (b, i) {
-      var next = b.tier >= 3 ? 'Max level' : b.val + ' of ' + b.th[b.tier] + b.unit;
-      return '<button type="button" class="bcell' + (i === badgeSel ? ' sel' : '') + '" data-act="badgesel" data-i="' + i + '" aria-pressed="' + (i === badgeSel) + '" aria-label="' + esc(b.label + ', ' + cap1(TIER_NAMES[b.tier]) + ', ' + next) + '">' +
-        badgeSvg(b.sym, TIER_NAMES[b.tier], 62) + '<b>' + esc(b.label) + '</b>' +
-        '<span class="mini t-' + TIER_NAMES[Math.min(3, b.tier + 1)] + '"><i style="width:' + Math.round(b.frac * 100) + '%"></i></span><em>' + esc(next) + '</em></button>';
+      var next = b.tier >= 4 ? 'Max level' : b.val + ' of ' + b.th[b.tier] + b.unit;
+      var nm = b.tier ? cap1(TIER_NAMES[b.tier - 1]) : 'Locked';
+      return '<button type="button" class="bcell' + (i === badgeSel ? ' sel' : '') + '" data-act="badgesel" data-i="' + i + '" aria-pressed="' + (i === badgeSel) + '" aria-label="' + esc(b.label + ', ' + nm + ', ' + next) + '">' +
+        badgeSvg(b.sym, b.tier ? TIER_NAMES[b.tier - 1] : 'locked', 62) + '<b>' + esc(b.label) + '</b>' +
+        '<span class="mini t-' + TIER_NAMES[Math.min(3, b.tier)] + '"><i style="width:' + Math.round(b.frac * 100) + '%"></i></span><em>' + esc(next) + '</em></button>';
     }).join('') + '</div></div>';
     var sb = defs[badgeSel] || defs[0];
     html += '<div class="ladder"><div class="lh"><b>' + esc(sb.label) + ' badge</b><span>' + esc(sb.what) + '</span></div><div class="lsteps">' +
       TIER_NAMES.map(function (t, i) {
-        var req = i === 0 ? 'Start' : sb.th[i - 1] + sb.unit;
-        return '<div class="lstep' + (i <= sb.tier ? ' got' : '') + (i === sb.tier ? ' now' : '') + '">' + badgeSvg(sb.sym, i <= sb.tier ? t : 'locked', 54) + '<b>' + cap1(t) + '</b><em>' + esc(req) + '</em></div>';
-      }).join('') + '</div><p class="fine">Every badge starts at Bronze. Tap a badge to see its steps. Silver, Gold and Diamond are earned with your logged training, meals and weigh-ins. Streaks, stars and the strength badges only count your Monday, Wednesday and Friday sessions. Bonus days never help or hurt them. They have their own Bonus and Stretch badges and give extra XP, 60 for each bonus day.</p></div>';
+        var req = sb.th[i] + sb.unit;
+        return '<div class="lstep' + (i < sb.tier ? ' got' : '') + (i === sb.tier - 1 ? ' now' : '') + '">' + badgeSvg(sb.sym, i < sb.tier ? t : 'locked', 54) + '<b>' + cap1(t) + '</b><em>' + esc(req) + '</em></div>';
+      }).join('') + '</div><p class="fine">Tap a badge to see its steps. Badges are earned with your logged training, meals and weigh-ins. Streaks, stars and the strength badges only count your Monday, Wednesday and Friday sessions. Bonus days never help or hurt them. They have their own Bonus and Stretch badges and give extra XP, 60 for each bonus day.</p></div>';
     el.game.innerHTML = html;
   }
 
@@ -2731,9 +2769,21 @@ html { background: var(--bg); }
   /* ===== END CUSTOM FOOD AND DRINK ===== */
 
   function nutriSerialize() {
-    var keys = Object.keys(nutri.days).sort().slice(-14), out = {};
+    var all = Object.keys(nutri.days).sort(), keys = all.slice(-14), out = {}, hist = {};
+    Object.keys(nutri.hist || {}).forEach(function (k) { hist[k] = nutri.hist[k]; });
+    all.forEach(function (dk) {
+      var d = nutri.days[dk];
+      if (!d || !Array.isArray(d.ids)) return;
+      try {
+        var mk = iso(mondayOf(fromIso(dk))), di = Math.round((fromIso(dk) - fromIso(mk)) / 86400000);
+        var nd = nutriDay(mk, di), m = Object.keys(d.eaten || {}).length + (d.extra || []).length;
+        if (nd || m) hist[dk] = { s: nd ? Math.round(nd.score * 100) / 100 : 0, m: m, k: nd ? Math.round(nd.kcal) : 0, p: nd ? Math.round(nd.p) : 0 };
+        else delete hist[dk];
+      } catch (e) {}
+    });
+    nutri.hist = hist;
     keys.forEach(function (k) { out[k] = nutri.days[k]; });
-    return { days: out, mine: (nutri.mine || []).slice(0, 12) };
+    return { days: out, mine: (nutri.mine || []).slice(0, 12), hist: hist };
   }
   function nutriApply(src) {
     if (!src || !src.days || typeof src.days !== 'object') return;
@@ -2764,7 +2814,12 @@ html { background: var(--bg); }
       var ex = (Array.isArray(d.extra) ? d.extra : []).concat(carry).slice(0, 30).map(cleanExtra).filter(Boolean);
       nd[k] = { ids: d.ids.slice(), eaten: e, extra: ex };
     });
-    nutri = { days: nd, mine: Array.isArray(src.mine) ? src.mine.slice(0, 12).map(cleanExtra).filter(Boolean) : [] };
+    var hs = {};
+    if (src.hist && typeof src.hist === 'object') Object.keys(src.hist).forEach(function (k) {
+      var h = src.hist[k];
+      if (/^\d{4}-\d{2}-\d{2}$/.test(k) && h && +h.s >= 0 && +h.s <= 1 && +h.m >= 0 && +h.m < 100) hs[k] = { s: +h.s, m: h.m | 0, k: Math.max(0, +h.k || 0), p: Math.max(0, +h.p || 0) };
+    });
+    nutri = { days: nd, mine: Array.isArray(src.mine) ? src.mine.slice(0, 12).map(cleanExtra).filter(Boolean) : [], hist: hs };
   }
 
   function curNutri() {
@@ -2874,8 +2929,12 @@ html { background: var(--bg); }
     return { bn: bn, bmin: bmin, bst: bst, planned: planned, base: base, all: all, lifts: lifts, frac: planned ? Math.min(1, base / planned) : null, active: all > 0 };
   }
   function nutriDay(k, i) {
-    var day = nutri.days[iso(addDays(fromIso(k), i))];
-    if (!day || !Array.isArray(day.ids)) return null;
+    var dk0 = iso(addDays(fromIso(k), i)), day = nutri.days[dk0];
+    if (!day || !Array.isArray(day.ids)) {
+      // Only the last 14 days are kept in full. Older days keep a short summary, so old weeks still count.
+      var h0 = nutri.hist && nutri.hist[dk0];
+      return h0 && h0.s > 0 ? { score: h0.s, kcal: h0.k, p: h0.p, T: nutriTargets(isTrain(planDay(k, i))) } : null;
+    }
     var T = nutriTargets(isTrain(planDay(k, i))), pl = planFor(day.ids, T.kcal), kc = 0, p = 0;
     pl.items.forEach(function (it) { if (day.eaten && day.eaten[it.slot.k]) { kc += it.kcal; p += it.p; } });
     (day.extra || []).forEach(function (x) { kc += x.kcal; p += x.p; });
@@ -2891,7 +2950,7 @@ html { background: var(--bg); }
     if (k === iso(todayMon)) lastDay = notStarted ? -1 : todayIdx;
     else if (k > iso(todayMon)) lastDay = -1;
     var plannedMin = 0, baseMin = 0, allMin = 0, strDays = 0, strTarget = 0, actDays = 0, days = [], ns = 0, nn = 0, bDays = 0, bMin = 0, bStretch = 0;
-    var firstNutri = Object.keys(nutri.days).sort()[0];
+    var firstNutri = Object.keys(nutri.days).concat(Object.keys(nutri.hist || {})).sort()[0];
     var nutriOn = !!firstNutri && iso(addDays(fromIso(k), 6)) >= firstNutri;
     for (i = 0; i < 7; i++) {
       var td = trainDay(k, i), nd = nutriDay(k, i);
@@ -3112,7 +3171,7 @@ html { background: var(--bg); }
   var cloudFailed = false;
   var saving = false, dirty = false, saveTimer = null;
 
-  function serialize() { return { v: 9, pv: 3, swp: swp, cel: cel, tm: tm, tma: tmA, seen: seen, startKg: startKg, startFat: startFat, plan: plan, done: done, logs: logs, recs: recs, level: level, body: bodyKg, weigh: weigh, goalKg: goalKg, goalMonths: goalMonths, nutri: nutriSerialize() }; }
+  function serialize() { return { v: 10, pv: 3, swp: swp, cel: cel, tm: tm, tma: tmA, seen: seen, startKg: startKg, startFat: startFat, plan: plan, done: done, logs: logs, recs: recs, level: level, body: bodyKg, weigh: weigh, goalKg: goalKg, goalMonths: goalMonths, nutri: nutriSerialize() }; }
   function apply(data) {
     coreCache = null;
     if (!data || typeof data !== 'object') return;
@@ -3150,6 +3209,7 @@ html { background: var(--bg); }
     startFat = +data.startFat >= 3 && +data.startFat <= 60 ? +data.startFat : null;
     if (LEVELS[data.level]) level = data.level;
     seen = data.seen && typeof data.seen === 'object' ? data.seen : null;
+    if ((data.v | 0) < 10) seen = null; // badge tiers and levels were reworked in version 10, so start the announcements fresh
     nutriApply(data.nutri);
     // Older versions saved an earlier recommended plan. Swap in the new one and keep only the user's own activities.
     var legacy = (data.v | 0) < 4;
@@ -3614,11 +3674,11 @@ html { background: var(--bg); }
     } catch (e) {}
   }
   function fxBadge(b) {
-    fxCard({ cls: 'badge', art: badgeSvg(b.sym, TIER_NAMES[b.tier], 112), title: cap1(TIER_NAMES[b.tier]) + ' ' + b.label, sub: 'Badge unlocked!', confetti: 26 });
+    fxCard({ cls: 'badge', art: badgeSvg(b.sym, TIER_NAMES[b.tier - 1], 112), title: cap1(TIER_NAMES[b.tier - 1]) + ' ' + b.label, sub: 'Badge unlocked!', confetti: 26 });
   }
-  function fxLevel(x) {
+  function fxLevel(x, head) {
     var yl = charPick() === 'yes';
-    fxCard({ cls: 'badge', art: yl ? yBust(112, '#FFF3C4', 'heart') : avatar('proud', 112, true, '#FFF3C4'), title: 'Level ' + x.level + '!', sub: (yl ? 'Yesim is proud. ' : '') + x.title, confetti: 70, ms: 3400 });
+    fxCard({ cls: 'badge', art: yl ? yBust(112, '#FFF3C4', 'heart') : avatar('proud', 112, true, '#FFF3C4'), title: head || 'Level ' + x.level + '!', sub: (yl ? 'Yesim is proud. ' : '') + (head ? 'Level ' + x.level + ' of ' + x.maxLevel : x.title), confetti: 70, ms: 3400 });
   }
   function fxSession(week, kc) {
     var ys = charPick() === 'yes';
