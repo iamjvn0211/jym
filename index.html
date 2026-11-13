@@ -128,6 +128,10 @@ h2 { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: 2
 .meta b { font-family: var(--font-display); font-weight: 700; font-size: 24px; color: var(--ink); }
 .rowbtn[aria-checked="true"] .meta b { color: var(--muted); }
 .rm { flex: none; width: 44px; align-self: center; height: 44px; margin-left: 4px; display: grid; place-items: center; background: none; border: 1px solid var(--line); border-radius: 6px; }
+.grip { flex: none; width: 44px; height: 44px; align-self: center; margin-left: 4px; display: grid; place-items: center; background: none; border: 1px solid var(--line); border-radius: 12px; color: inherit; touch-action: none; cursor: grab; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+.grip svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 3.4; stroke-linecap: round; }
+.row.dragging { position: relative; z-index: 5; background: var(--bg); box-shadow: 0 8px 24px rgba(0,0,0,.22); border-radius: 12px; opacity: .97; }
+.row.dragging .grip { cursor: grabbing; }
 .rm svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2.2; stroke-linecap: round; }
 .hw { flex: none; width: 44px; height: 44px; align-self: center; margin-left: 4px; display: grid; place-items: center; background: none; border: 1px solid var(--line); border-radius: 6px; font-family: var(--font-display); font-weight: 700; font-size: 22px; line-height: 1; }
 .hw[aria-expanded="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
@@ -1425,6 +1429,7 @@ html { background: var(--bg); }
   }
 
   var CHECK = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+  var GRIP = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6.5h.01M15 6.5h.01M9 12h.01M15 12h.01M9 17.5h.01M15 17.5h.01"/></svg>';
   var CROSS = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>';
 
   // Strength days are the core of the plan. Anything on a day without a strength session
@@ -1670,7 +1675,8 @@ html { background: var(--bg); }
         var bits = [CATS[a.cat] || 'Strength'];
         if (isStretch(a)) bits[0] = 'Stretch'; else if (isBonus(a)) bits.unshift('Bonus');
         if (a.detail) bits.push(a.detail);
-        return '<li class="row' + (isBonus(a) ? ' bonus' : '') + '"><button type="button" class="rowbtn" role="checkbox" aria-checked="' + on +
+        var grp = isStretch(a) ? 'stretch' : isBonus(a) ? 'bonus' : 'core';
+        return '<li class="row' + (isBonus(a) ? ' bonus' : '') + '" data-grp="' + grp + '" data-rid="' + esc(a.id) + '"><button type="button" class="rowbtn" role="checkbox" aria-checked="' + on +
           '" data-act="toggle" data-id="' + esc(a.id) + '">' +
           '<span class="plate ' + esc(a.cat) + '">' + CHECK + '</span>' +
           '<span class="info"><span class="name">' + esc(a.name) + '</span><span class="detail">' + esc(bits.join(' · ')) + '</span></span>' +
@@ -1678,6 +1684,7 @@ html { background: var(--bg); }
           '</button>' +
           '<button type="button" class="hw" data-act="how" data-id="' + esc(a.id) + '" aria-expanded="' + (openId === a.id) +
           '" aria-label="How to do ' + esc(a.name) + '">?</button>' +
+          (editing ? '<button type="button" class="grip" data-act="grip" data-id="' + esc(a.id) + '" aria-label="Move ' + esc(a.name) + '. Drag it, or press the up and down arrow keys.">' + GRIP + '</button>' : '') +
           (editing ? '<button type="button" class="rm" data-act="remove" data-id="' + esc(a.id) + '" aria-label="Remove ' + esc(a.name) + '">' + CROSS + '</button>' : '') +
           weightRow(a) +
           (openId === a.id ? howPanel(a) : '') +
@@ -3955,6 +3962,7 @@ html { background: var(--bg); }
       // ignore text fields and anything that scrolls sideways itself
       for (var n = t; n && n !== document.body && n.nodeType === 1; n = n.parentNode) {
         var tn = n.tagName;
+        if (n.classList && n.classList.contains('grip')) return true;
         if (tn === 'INPUT' || tn === 'TEXTAREA' || tn === 'SELECT' || n.isContentEditable) return true;
         if (n.scrollWidth > n.clientWidth + 2) {
           var ox = '';
@@ -3998,6 +4006,95 @@ html { background: var(--bg); }
   el.thisweek.addEventListener('click', function () { weekStart = todayMon; dayIdx = todayIdx; render(); });
 
   el.editbtn.addEventListener('click', function () { editing = !editing; disarm(); renderList(); });
+
+  /* ---------- drag and drop to reorder exercises (Edit plan mode) ---------- */
+  // Rows only move inside their own group: the main session, the bonus exercises, or the stretches.
+  // The new order is written back into the plan's own slots, so every other row keeps its place and every id stays the same.
+  function applyOrder(ids) {
+    var set = {}, byId = {}, slots = [];
+    ids.forEach(function (id) { set[id] = 1; });
+    plan.forEach(function (a, i) { if (set[a.id]) { slots.push(i); byId[a.id] = a; } });
+    if (slots.length !== ids.length) return false;
+    slots.forEach(function (pi, j) { plan[pi] = byId[ids[j]]; });
+    return true;
+  }
+  function groupIds(grp) {
+    return [].slice.call(el.list.querySelectorAll('li.row[data-grp="' + grp + '"]')).map(function (li) { return li.getAttribute('data-rid'); });
+  }
+  var drag = null;
+  function sameGroup(n, grp) { return n && n.nodeType === 1 && n.matches && n.matches('li.row[data-grp="' + grp + '"]'); }
+  function dragStep() {
+    if (!drag) return;
+    var li = drag.li, h = drag.h;
+    li.style.transform = '';
+    var top = li.getBoundingClientRect().top, vis = drag.y - drag.off + h / 2, moved = true, guard = 0;
+    while (moved && guard++ < 30) {
+      moved = false;
+      var prev = li.previousElementSibling, next = li.nextElementSibling;
+      if (sameGroup(prev, drag.grp)) {
+        var pr = prev.getBoundingClientRect();
+        if (vis < pr.top + pr.height / 2) { li.parentNode.insertBefore(li, prev); moved = true; }
+      }
+      if (!moved && sameGroup(next, drag.grp)) {
+        var nr = next.getBoundingClientRect();
+        if (vis > nr.top + nr.height / 2) { li.parentNode.insertBefore(li, next.nextSibling); moved = true; }
+      }
+      if (moved) { li.style.transform = ''; top = li.getBoundingClientRect().top; }
+    }
+    li.style.transform = 'translateY(' + Math.round(drag.y - drag.off - top) + 'px)';
+  }
+  function dragScroll() {
+    if (!drag) return;
+    var y = drag.y, vh = window.innerHeight || 700;
+    var dy = y < 90 ? -Math.min(18, (90 - y) / 4 + 4) : y > vh - 90 ? Math.min(18, (y - (vh - 90)) / 4 + 4) : 0;
+    if (dy) { window.scrollBy(0, dy); dragStep(); }
+    drag.raf = requestAnimationFrame(dragScroll);
+  }
+  function dragEnd(commit) {
+    if (!drag) return;
+    var d = drag; drag = null;
+    cancelAnimationFrame(d.raf);
+    try { d.g.releasePointerCapture(d.pid); } catch (x) {}
+    d.li.style.transform = '';
+    d.li.classList.remove('dragging');
+    if (commit) { var ids = groupIds(d.grp); if (applyOrder(ids)) save(); }
+    renderList();
+  }
+  el.list.addEventListener('pointerdown', function (e) {
+    var g = e.target.closest && e.target.closest('.grip');
+    if (!g || !editing || drag || (e.pointerType === 'mouse' && e.button !== 0)) return;
+    var li = g.closest('li.row');
+    if (!li) return;
+    var grp = li.getAttribute('data-grp');
+    if (el.list.querySelectorAll('li.row[data-grp="' + grp + '"]').length < 2) return;
+    e.preventDefault();
+    var r = li.getBoundingClientRect();
+    drag = { li: li, g: g, grp: grp, pid: e.pointerId, y: e.clientY, off: e.clientY - r.top, h: r.height, raf: 0 };
+    try { g.setPointerCapture(e.pointerId); } catch (x) {}
+    li.classList.add('dragging');
+    drag.raf = requestAnimationFrame(dragScroll);
+  });
+  el.list.addEventListener('pointermove', function (e) {
+    if (!drag || e.pointerId !== drag.pid) return;
+    e.preventDefault();
+    drag.y = e.clientY;
+    dragStep();
+  });
+  el.list.addEventListener('pointerup', function (e) { if (drag && e.pointerId === drag.pid) dragEnd(true); });
+  el.list.addEventListener('pointercancel', function (e) { if (drag && e.pointerId === drag.pid) dragEnd(false); });
+  el.list.addEventListener('keydown', function (e) {
+    var g = e.target.closest && e.target.closest('.grip');
+    if (!g || !editing || (e.key !== 'ArrowUp' && e.key !== 'ArrowDown')) return;
+    e.preventDefault();
+    var li = g.closest('li.row'), grp = li.getAttribute('data-grp'), id = li.getAttribute('data-rid');
+    var ids = groupIds(grp), i = ids.indexOf(id), j = i + (e.key === 'ArrowUp' ? -1 : 1);
+    if (i < 0 || j < 0 || j >= ids.length) return;
+    ids.splice(i, 1); ids.splice(j, 0, id);
+    if (applyOrder(ids)) save();
+    renderList();
+    var again = el.list.querySelector('.grip[data-id="' + id + '"]');
+    if (again) again.focus();
+  });
   el.restore.addEventListener('click', function () {
     if (!restoreArmed) {
       restoreArmed = true;
@@ -4035,14 +4132,18 @@ html { background: var(--bg); }
     var name = el['f-name'].value.trim();
     if (!name) { el['f-name'].focus(); return; }
     var day = +el['f-day'].value;
-    plan.push({
+    var fresh = {
       id: 'c' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
       day: day,
       cat: el.addform.elements['cat'].value,
       name: name.slice(0, 60),
       detail: el['f-detail'].value.trim().slice(0, 60),
       min: Math.max(0, Math.min(600, parseInt(el['f-min'].value, 10) || 0))
-    });
+    };
+    // A new strength exercise goes in before that day's cardio finisher. Everything else goes at the end. You can drag it anywhere in Edit plan.
+    var at = -1;
+    if (fresh.cat === 'str') plan.forEach(function (a, ix) { if (at < 0 && a.day === day && a.cat === 'car') at = ix; });
+    if (at >= 0) plan.splice(at, 0, fresh); else plan.push(fresh);
     dayIdx = day;
     closeForm();
     save(); render();
