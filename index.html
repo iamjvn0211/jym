@@ -680,7 +680,8 @@ html { background: var(--bg); }
 #nudge button { font: inherit; min-height: 48px; border-radius: 14px; font-weight: 700; cursor: pointer; border: 1px solid var(--line); background: transparent; color: var(--ink); }
 #nudge button.go { background: var(--acc); border-color: var(--acc); color: var(--onacc); font-size: 16px; }
 @media (prefers-reduced-motion: no-preference) { #nudge .nc { animation: cardin .45s cubic-bezier(.2, 1.4, .4, 1) both; } }
-.swapbox { margin: 0 0 8px; }
+.dayactions { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 8px; margin: 0 0 10px; }
+.swapbox { flex: 1 1 auto; min-width: 0; margin: 0; }
 .swapbox:empty { display: none; }
 .swapbox .ghost[disabled] { opacity: .5; }
 .timer { margin: 0 0 12px; }
@@ -732,9 +733,11 @@ html { background: var(--bg); }
         <h2 id="dayhead"></h2>
         <p class="sub" id="daysub"></p>
       </div>
+    </div>
+    <div class="dayactions">
+      <div id="swapbox" class="swapbox"></div>
       <button type="button" class="ghost" id="editbtn" aria-pressed="false">Edit plan</button>
     </div>
-    <div id="swapbox" class="swapbox"></div>
     <ul class="list" id="list"></ul>
     <div class="editextra" id="editextra" hidden>
       <button type="button" class="ghost" id="restore">Restore recommended plan</button>
@@ -1450,7 +1453,8 @@ html { background: var(--bg); }
   function planDay(k, i) { var p = swp[k]; return p && p[i] != null ? p[i] : i; }
   function rowsOn(k, i) { var pd = planDay(k, i); return plan.filter(function (a) { return a.day === pd; }); }
   function swapElig(k, i) {
-    if (k !== iso(todayMon) || notStarted || i < todayIdx) return false;
+    var cw = iso(todayMon);
+    if (k < cw || (k === cw && (notStarted || i < todayIdx))) return false;
     var dn = done[k] || {};
     return !rowsOn(k, i).some(function (a) { return dn[a.id]; });
   }
@@ -1621,12 +1625,12 @@ html { background: var(--bg); }
     var box = el.swapbox;
     if (!box) return;
     var k = iso(weekStart), DNL = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'], h = '';
-    if (k === iso(todayMon)) {
+    if (k >= iso(todayMon)) {
       var cur = swp[k], pair = [];
       if (cur) for (var c = 0; c < 7; c++) if (cur[c] !== c) pair.push(c);
       if (pair.length === 2) {
         var can = swapElig(k, pair[0]) && swapElig(k, pair[1]);
-        h = '<p class="fine" style="margin:0 0 6px">Swapped this week: ' + DNL[pair[0]] + ' and ' + DNL[pair[1]] + '. It goes back to normal next Monday.</p>' +
+        h = '<p class="fine" style="margin:0 0 6px">Swapped this week: ' + DNL[pair[0]] + ' and ' + DNL[pair[1]] + '. It only applies to this week.</p>' +
           '<button type="button" class="ghost" data-act="swapundo"' + (can ? '' : ' disabled') + '>Undo swap</button>' +
           (can ? '' : '<p class="fine" style="margin:6px 0 0">A swap can only be undone while both days are still ahead of you and nothing is ticked on them.</p>');
       } else if (swapElig(k, dayIdx)) {
