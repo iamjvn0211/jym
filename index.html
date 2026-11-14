@@ -1242,6 +1242,24 @@ html { background: var(--bg); }
       ],
       tip: "If your lower back lifts, make the movement smaller. Slow and flat beats big.",
       q: "dead bug exercise"
+    },
+    "Pigeon pose": {
+      steps: [
+        "Start on hands and knees. Slide one knee forward behind the same-side wrist and angle that shin across the mat, as square as is comfortable.",
+        "Extend the other leg straight back along the floor, toes pointing back, and keep your hips level.",
+        "Lower onto your forearms or fold forward over the front shin. Breathe slowly and hold 45 seconds, then switch sides."
+      ],
+      tip: "Put a folded towel or cushion under the front hip if it does not reach the floor. Keep the front foot flexed to protect the knee, and ease off if you feel pain in the knee.",
+      q: "pigeon pose hip stretch"
+    },
+    "Frog pose": {
+      steps: [
+        "Start on hands and knees on a soft mat. Slide your knees wide apart with the inner edges of your feet on the floor and your ankles in line with your knees.",
+        "Lower onto your forearms and let your hips sink back toward your heels, with your back flat.",
+        "Breathe and hold 45 seconds. To come out, walk your hands forward and bring the knees together slowly."
+      ],
+      tip: "Only go as wide as feels like a stretch in the inner thighs, never a pinch in the knee or groin. Pad the knees with a folded towel.",
+      q: "frog pose mobility stretch"
     }
   };
   function guideFor(a) { return GUIDE[a.name + '|' + a.detail] || GUIDE[a.name] || null; }
@@ -1314,6 +1332,11 @@ html { background: var(--bg); }
     add(4, 'mob', 'Prone Y raise', '2 × 8, thumbs up, squeeze the shoulder blades', 3, 1);
     add(4, 'mob', 'Couch stretch', '2 × 30 s per side, squeeze the glute', 4, 1);
     add(4, 'mob', 'Dead bug', '2 × 8 per side, lower back stays on the floor', 4, 1);
+    // Deep hip openers for every lifting day.
+    [0, 2, 4].forEach(function (d) {
+      add(d, 'mob', 'Pigeon pose', '2 × 45 s per side, breathe slowly', 4, 1);
+      add(d, 'mob', 'Frog pose', '2 × 45 s, hips sink back', 3, 1);
+    });
     return P;
   }
 
@@ -3182,7 +3205,7 @@ html { background: var(--bg); }
   var cloudFailed = false;
   var saving = false, dirty = false, saveTimer = null;
 
-  function serialize() { return { v: 10, pv: 3, swp: swp, cel: cel, tm: tm, tma: tmA, seen: seen, startKg: startKg, startFat: startFat, plan: plan, done: done, logs: logs, recs: recs, level: level, body: bodyKg, weigh: weigh, goalKg: goalKg, goalMonths: goalMonths, nutri: nutriSerialize() }; }
+  function serialize() { return { v: 10, pv: 4, swp: swp, cel: cel, tm: tm, tma: tmA, seen: seen, startKg: startKg, startFat: startFat, plan: plan, done: done, logs: logs, recs: recs, level: level, body: bodyKg, weigh: weigh, goalKg: goalKg, goalMonths: goalMonths, nutri: nutriSerialize() }; }
   function apply(data) {
     coreCache = null;
     if (!data || typeof data !== 'object') return;
@@ -3243,6 +3266,12 @@ html { background: var(--bg); }
         var have2 = {};
         plan.forEach(function (a) { have2[a.id] = 1; });
         plan = plan.concat(defaultPlan().filter(function (a) { return a.bonus && !have2[a.id]; }));
+      }
+      if (!legacy && (data.pv | 0) < 4) {
+        // Plan version 4 added the pigeon and frog poses to the three lifting days. Add them once if the saved plan lacks them.
+        var have4 = {};
+        plan.forEach(function (a) { have4[a.id] = 1; });
+        plan = plan.concat(defaultPlan().filter(function (a) { return (a.name === 'Pigeon pose' || a.name === 'Frog pose') && !have4[a.id]; }));
       }
       if (!legacy && (data.pv | 0) < 3) {
         // Plan version 3: no barbells at the gym for now, so the four barbell lifts became dumbbell lifts.
