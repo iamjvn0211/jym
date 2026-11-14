@@ -1260,6 +1260,42 @@ html { background: var(--bg); }
       ],
       tip: "Only go as wide as feels like a stretch in the inner thighs, never a pinch in the knee or groin. Pad the knees with a folded towel.",
       q: "frog pose mobility stretch"
+    },
+    "Glute bridge": {
+      steps: [
+        "Lie on your back with knees bent and feet flat, hip-width apart.",
+        "Flatten your lower back to the floor, then press through your heels and lift your hips.",
+        "Squeeze the glutes at the top for 2 seconds, then lower slowly."
+      ],
+      tip: "Finish with the glutes, not with an arched lower back. Ribs stay down and the pelvis stays tucked.",
+      q: "glute bridge pelvic tilt"
+    },
+    "Kneeling hip flexor stretch": {
+      steps: [
+        "Kneel on one knee on a soft surface, the other foot flat in front of you.",
+        "Tuck your pelvis under and squeeze the glute of the kneeling leg.",
+        "Shift forward a little until you feel the front of the hip stretch. Hold 30 seconds, then switch."
+      ],
+      tip: "The stretch comes from the tuck, not from leaning forward or arching the back.",
+      q: "kneeling hip flexor stretch"
+    },
+    "Slow leg raises": {
+      steps: [
+        "Lie on your back, press your lower back into the floor and keep it there.",
+        "With legs straight, or knees slightly bent if that is easier, lift both legs slowly to vertical.",
+        "Lower them over about 3 seconds, stopping before your lower back lifts."
+      ],
+      tip: "If your lower back arches, bend the knees or lower the legs less. Flat back beats range.",
+      q: "slow lying leg raises"
+    },
+    "Knee hug": {
+      steps: [
+        "Lie on your back with both legs straight.",
+        "Pull one knee toward your chest with both hands and keep the other leg long on the floor.",
+        "Press the lower back down, breathe slowly, hold 30 seconds, then switch."
+      ],
+      tip: "Keep the resting leg relaxed and pressed down. You should feel the stretch at the front of that hip.",
+      q: "single knee to chest stretch"
     }
   };
   function guideFor(a) { return GUIDE[a.name + '|' + a.detail] || GUIDE[a.name] || null; }
@@ -1336,6 +1372,13 @@ html { background: var(--bg); }
     [0, 2, 4].forEach(function (d) {
       add(d, 'mob', 'Pigeon pose', '2 × 45 s per side, breathe slowly', 4, 1);
       add(d, 'mob', 'Frog pose', '2 × 45 s, hips sink back', 3, 1);
+    });
+    // Pelvic tilt routine for the easy cardio days (Tue and Thu).
+    [1, 3].forEach(function (d) {
+      add(d, 'mob', 'Glute bridge', '2 × 10, squeeze at the top for 2 s', 3, 1);
+      add(d, 'mob', 'Kneeling hip flexor stretch', '2 × 30 s per side, tuck the pelvis under', 4, 1);
+      add(d, 'mob', 'Slow leg raises', '2 × 8, lower back stays flat', 3, 1);
+      add(d, 'mob', 'Knee hug', '2 × 30 s per side', 3, 1);
     });
     return P;
   }
@@ -3205,7 +3248,7 @@ html { background: var(--bg); }
   var cloudFailed = false;
   var saving = false, dirty = false, saveTimer = null;
 
-  function serialize() { return { v: 10, pv: 4, swp: swp, cel: cel, tm: tm, tma: tmA, seen: seen, startKg: startKg, startFat: startFat, plan: plan, done: done, logs: logs, recs: recs, level: level, body: bodyKg, weigh: weigh, goalKg: goalKg, goalMonths: goalMonths, nutri: nutriSerialize() }; }
+  function serialize() { return { v: 10, pv: 5, swp: swp, cel: cel, tm: tm, tma: tmA, seen: seen, startKg: startKg, startFat: startFat, plan: plan, done: done, logs: logs, recs: recs, level: level, body: bodyKg, weigh: weigh, goalKg: goalKg, goalMonths: goalMonths, nutri: nutriSerialize() }; }
   function apply(data) {
     coreCache = null;
     if (!data || typeof data !== 'object') return;
@@ -3272,6 +3315,12 @@ html { background: var(--bg); }
         var have4 = {};
         plan.forEach(function (a) { have4[a.id] = 1; });
         plan = plan.concat(defaultPlan().filter(function (a) { return (a.name === 'Pigeon pose' || a.name === 'Frog pose') && !have4[a.id]; }));
+      }
+      if (!legacy && (data.pv | 0) < 5) {
+        // Plan version 5 added the pelvic tilt routine on Tuesday and Thursday. Add it once if the saved plan lacks it.
+        var have5 = {}, new5 = { 'Glute bridge': 1, 'Kneeling hip flexor stretch': 1, 'Slow leg raises': 1, 'Knee hug': 1 };
+        plan.forEach(function (a) { have5[a.id] = 1; });
+        plan = plan.concat(defaultPlan().filter(function (a) { return new5[a.name] && !have5[a.id]; }));
       }
       if (!legacy && (data.pv | 0) < 3) {
         // Plan version 3: no barbells at the gym for now, so the four barbell lifts became dumbbell lifts.
