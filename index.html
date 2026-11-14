@@ -1296,6 +1296,16 @@ html { background: var(--bg); }
       ],
       tip: "Keep the resting leg relaxed and pressed down. You should feel the stretch at the front of that hip.",
       q: "single knee to chest stretch"
+    },
+    "90/90 plate press": {
+      steps: [
+        "Lie on your back with your feet flat on a wall, or shins resting on a bench, so your hips and knees are bent to about 90 degrees.",
+        "Hold a light plate or one dumbbell in both hands, arms straight above your chest. Press your ribs and lower back into the floor and keep your pelvis tucked.",
+        "Breathe in slowly into the sides of your ribs, as if into your armpits, without letting your back arch. Then press the weight up toward the ceiling, reaching the shoulder blades forward.",
+        "Lower slowly and repeat. Throughout, your pelvis and lower back stay locked to the floor."
+      ],
+      tip: "Use a light weight. If your lower back lifts or your ribs flare, make the reps smaller or put the weight down. Staying flat matters more than reps.",
+      q: "90/90 breathing plate press anterior pelvic tilt"
     }
   };
   function guideFor(a) { return GUIDE[a.name + '|' + a.detail] || GUIDE[a.name] || null; }
@@ -1310,6 +1320,7 @@ html { background: var(--bg); }
     return '<div class="how">' + body + '<a href="' + url + '" target="_blank" rel="noopener noreferrer">Watch a demo</a></div>';
   }
 
+  var PLATE_FROM = '2026-11-16';
   function defaultPlan() {
     var P = [];
     function add(day, cat, name, detail, min, bonus) {
@@ -1379,6 +1390,16 @@ html { background: var(--bg); }
       add(d, 'mob', 'Kneeling hip flexor stretch', '2 × 30 s per side, tuck the pelvis under', 4, 1);
       add(d, 'mob', 'Slow leg raises', '2 × 8, lower back stays flat', 3, 1);
       add(d, 'mob', 'Knee hug', '2 × 30 s per side', 3, 1);
+    });
+    // Core control for pelvic tilt, mandatory on the lifting days from the week of 16 November.
+    // The weeks before already finished without it, so it never turns them into missed sessions.
+    var n0 = P.length;
+    [0, 2, 4].forEach(function (d) { add(d, 'str', '90/90 plate press', '3 × 8 slow reps, ribs down, lower back flat', 5); });
+    P.splice(n0).forEach(function (r) {
+      r.from = PLATE_FROM;
+      var at = -1;
+      P.forEach(function (a, ix) { if (at < 0 && a.day === r.day && a.cat === 'car' && !a.bonus) at = ix; });
+      P.splice(at < 0 ? P.length : at, 0, r);
     });
     return P;
   }
@@ -1517,7 +1538,8 @@ html { background: var(--bg); }
   // Day swap for one week. Calendar day i of week k shows the rows of plan day planDay(k, i). Rows keep their plan day, so
   // a strength row stays a strength row when it moves, and ticks stay attached to the row ids.
   function planDay(k, i) { var p = swp[k]; return p && p[i] != null ? p[i] : i; }
-  function rowsOn(k, i) { var pd = planDay(k, i); return plan.filter(function (a) { return a.day === pd; }); }
+  function live(a, k) { return !(a.from && k < a.from); }
+  function rowsOn(k, i) { var pd = planDay(k, i); return plan.filter(function (a) { return a.day === pd && live(a, k); }); }
   function swapElig(k, i) {
     var cw = iso(todayMon);
     if (k < cw || (k === cw && (notStarted || i < todayIdx))) return false;
@@ -1871,13 +1893,13 @@ html { background: var(--bg); }
 
   function weekInfo(k) {
     var dn = done[k] || {}, tot = 0, dc = 0;
-    plan.forEach(function (a) { if (isBonus(a)) return; tot++; if (dn[a.id]) dc++; });
+    plan.forEach(function (a) { if (isBonus(a) || !live(a, k)) return; tot++; if (dn[a.id]) dc++; });
     return { total: tot, done: dc, full: tot > 0 && dc === tot };
   }
 
   function daysComplete(k) {
     var dn = done[k] || {}, t = [0, 0, 0, 0, 0, 0, 0], c = [0, 0, 0, 0, 0, 0, 0], planned = 0, comp = 0, i;
-    plan.forEach(function (a) { if (isBonus(a)) return; t[a.day]++; if (dn[a.id]) c[a.day]++; });
+    plan.forEach(function (a) { if (isBonus(a) || !live(a, k)) return; t[a.day]++; if (dn[a.id]) c[a.day]++; });
     for (i = 0; i < 7; i++) if (t[i] && isTrain(i)) { planned++; if (c[i] === t[i]) comp++; }
     return { planned: planned, comp: comp };
   }
@@ -2995,7 +3017,7 @@ html { background: var(--bg); }
     var dn = done[k] || {}, planned = 0, base = 0, all = 0, lifts = 0, bn = 0, bmin = 0, bst = 0;
     var pdi = planDay(k, i);
     plan.forEach(function (a) {
-      if (a.day !== pdi) return;
+      if (a.day !== pdi || !live(a, k)) return;
       if (!isBonus(a)) planned += a.min || 0;
       if (dn[a.id]) {
         all += a.min || 0;
@@ -3248,7 +3270,7 @@ html { background: var(--bg); }
   var cloudFailed = false;
   var saving = false, dirty = false, saveTimer = null;
 
-  function serialize() { return { v: 10, pv: 5, swp: swp, cel: cel, tm: tm, tma: tmA, seen: seen, startKg: startKg, startFat: startFat, plan: plan, done: done, logs: logs, recs: recs, level: level, body: bodyKg, weigh: weigh, goalKg: goalKg, goalMonths: goalMonths, nutri: nutriSerialize() }; }
+  function serialize() { return { v: 10, pv: 6, swp: swp, cel: cel, tm: tm, tma: tmA, seen: seen, startKg: startKg, startFat: startFat, plan: plan, done: done, logs: logs, recs: recs, level: level, body: bodyKg, weigh: weigh, goalKg: goalKg, goalMonths: goalMonths, nutri: nutriSerialize() }; }
   function apply(data) {
     coreCache = null;
     if (!data || typeof data !== 'object') return;
@@ -3292,7 +3314,9 @@ html { background: var(--bg); }
     var legacy = (data.v | 0) < 4;
     if (Array.isArray(data.plan) && data.plan.length) {
       var saved = data.plan.filter(function (a) { return a && typeof a.id === 'string' && typeof a.name === 'string'; }).map(function (a) {
-        return { id: a.id, day: Math.max(0, Math.min(6, a.day | 0)), cat: CATS[a.cat] ? a.cat : 'str', name: a.name, detail: a.detail || '', min: a.min | 0, bonus: a.bonus ? 1 : 0 };
+        var o = { id: a.id, day: Math.max(0, Math.min(6, a.day | 0)), cat: CATS[a.cat] ? a.cat : 'str', name: a.name, detail: a.detail || '', min: a.min | 0, bonus: a.bonus ? 1 : 0 };
+        if (typeof a.from === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(a.from)) o.from = a.from;
+        return o;
       });
       if (legacy) {
         plan = defaultPlan().concat(saved.filter(function (a) { return a.id.charAt(0) === 'c'; }));
@@ -3321,6 +3345,16 @@ html { background: var(--bg); }
         var have5 = {}, new5 = { 'Glute bridge': 1, 'Kneeling hip flexor stretch': 1, 'Slow leg raises': 1, 'Knee hug': 1 };
         plan.forEach(function (a) { have5[a.id] = 1; });
         plan = plan.concat(defaultPlan().filter(function (a) { return new5[a.name] && !have5[a.id]; }));
+      }
+      if (!legacy && (data.pv | 0) < 6) {
+        // Plan version 6 added the 90/90 plate press to the three lifting days, before the cardio finisher.
+        var have6 = {};
+        plan.forEach(function (a) { have6[a.id] = 1; });
+        defaultPlan().filter(function (a) { return a.name === '90/90 plate press' && !have6[a.id]; }).forEach(function (r) {
+          var at = -1;
+          plan.forEach(function (a, ix) { if (at < 0 && a.day === r.day && a.cat === 'car' && !a.bonus) at = ix; });
+          plan.splice(at < 0 ? plan.length : at, 0, r);
+        });
       }
       if (!legacy && (data.pv | 0) < 3) {
         // Plan version 3: no barbells at the gym for now, so the four barbell lifts became dumbbell lifts.
