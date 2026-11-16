@@ -264,7 +264,6 @@ h2 { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: 2
 .legend i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 8px; vertical-align: -1px; }
 .legend .lt { background: var(--str); }
 .legend .ln2 { background: var(--mob); }
-.quote { margin: 0; padding: 12px 14px; border-left: 4px solid var(--gold); background: var(--bg); border-radius: 0 8px 8px 0; font-size: 16px; font-style: italic; }
 .chart .band { fill: var(--mob); opacity: 0.18; }
 .legend .lp { background: var(--ink); border-radius: 50%; }
 .legend .ls { background: var(--ink); height: 3px; vertical-align: 3px; }
@@ -350,7 +349,6 @@ h2 { font-family: var(--font-display); font-weight: 700; font-size: 20px; letter
 .legend .ln2 { background: var(--acc2); }
 .nbar i { background: var(--acc2); }
 .stars .on { color: var(--acc2); }
-.quote { border-left-color: var(--acc2); border-radius: 0 14px 14px 0; }
 .seg button, .lchips button { border: 0; border-radius: 12px; }
 .seg button[aria-pressed="true"], .lchips button[aria-pressed="true"] { background: var(--acc); color: var(--onacc); }
 .primary { background: var(--acc); color: var(--onacc); border-radius: 14px; min-height: 52px; font-weight: 600; }
@@ -425,7 +423,6 @@ input[type="text"]:focus, input[type="number"]:focus, select:focus { border-colo
 .badge.on { border-color: var(--acc-dk); }
 .stars { letter-spacing: 2px; }
 .stars .on { color: #FFB800; }
-.quote { border-left-width: 6px; font-weight: 700; }
 .toast .msg { font-weight: 800; border-radius: 16px; }
 /* tab bar */
 .tabbar { background: var(--surface); border-top: 2px solid var(--line); -webkit-backdrop-filter: none; backdrop-filter: none; }
@@ -596,7 +593,6 @@ input[type="text"], input[type="number"], select { border: 1px solid var(--line)
 .gbar i, .tgt .track i, .todaycard .tbar i, .nbar i { border-radius: 4px; background-image: none; }
 .todaycard { border: 1px solid var(--line); border-bottom-width: 1px; border-radius: 14px; }
 .stars .on { color: #F5B301; }
-.quote { border-left-width: 3px; font-weight: 500; border-radius: 0 10px 10px 0; }
 .toast .msg { font-weight: 600; border-radius: 12px; }
 .tabbar { border-top: 1px solid var(--line); }
 .tab { font-size: 11px; font-weight: 600; border: 0; border-radius: 10px; }
@@ -2944,20 +2940,6 @@ svg.chart .wb.n.c-good { fill: #17A06A; }
   /* ===== NUTRITION BLOCK END ===== */
   /* ===== WELCOME BACK ===== */
   var DAYN = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-  var QUOTES = [
-    'You do not need a perfect week. You need a week you showed up in.',
-    'Small sessions, repeated, beat big plans that never start.',
-    'The bar does not care how you feel. It rewards that you came.',
-    'Strong is built on the boring days. Today can be one of them.',
-    'One more rep than last time is still progress.',
-    'Eat to fuel the work. Train to earn the next meal.',
-    'Discipline is just a promise you keep to your future self.',
-    'Muscle is made in the weeks nobody sees.',
-    'Slow weight loss stays off. Fast weight loss comes back.',
-    'Do the next small thing. Then the one after that.',
-    'You are one good week away from a different story.',
-    'Consistency turns effort into results.'
-  ];
   var STAR_TXT = ['', 'Poor week', 'Weak week', 'Okay week', 'Strong week', 'Perfect week'];
 
   function actMin(k, i) { var r = tm[k + '|' + i]; return r && r.m > 0 ? r.m : null; }
@@ -3202,11 +3184,9 @@ svg.chart .wb.n.c-good { fill: #17A06A; }
     if (notStarted) steps.push('Set your start weight in Settings. The plan starts Monday 9 November.');
     else if (td.planned && td.base < td.planned) steps.push('Today has ' + hm(td.planned - td.base) + ' of training left. Open the Workout tab.');
     if (!notStarted && !weigh[cur]) steps.push('Log this week\'s weigh-in on the Progress tab.');
-    if (!notStarted && !nutriDay(cur, todayIdx)) steps.push('Tick your meals on the Nutrition tab to keep nutrition on track.');
+    if (!notStarted && !nutriDay(cur, todayIdx)) steps.push('Log your food on the Nutrition tab to keep nutrition on track.');
     if (!steps.length) steps.push('Everything for today is done. Rest well and eat enough protein.');
-    var q = QUOTES[(now.getFullYear() * 400 + now.getMonth() * 31 + now.getDate()) % QUOTES.length];
-    html += '<div class="eqcard"><p class="fine" style="margin:0 0 4px">Next small win</p><div class="line" style="margin:0"><b>' + esc(steps[0]) + '</b></div></div>' +
-      '<blockquote class="quote">' + esc(q) + '</blockquote>';
+    html += '<div class="eqcard"><p class="fine" style="margin:0 0 4px">Next small win</p><div class="line" style="margin:0"><b>' + esc(steps[0]) + '</b></div></div>';
     el.welcome.innerHTML = html;
   }
   /* ===== END WELCOME BACK ===== */
