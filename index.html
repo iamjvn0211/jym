@@ -1243,15 +1243,6 @@ html { background: var(--bg); }
       tip: "If your lower back lifts, make the movement smaller. Slow and flat beats big.",
       q: "dead bug exercise"
     },
-    "Pigeon pose": {
-      steps: [
-        "Start on hands and knees. Slide one knee forward behind the same-side wrist and angle that shin across the mat, as square as is comfortable.",
-        "Extend the other leg straight back along the floor, toes pointing back, and keep your hips level.",
-        "Lower onto your forearms or fold forward over the front shin. Breathe slowly and hold 45 seconds, then switch sides."
-      ],
-      tip: "Put a folded towel or cushion under the front hip if it does not reach the floor. Keep the front foot flexed to protect the knee, and ease off if you feel pain in the knee.",
-      q: "pigeon pose hip stretch"
-    },
     "Frog pose": {
       steps: [
         "Start on hands and knees on a soft mat. Slide your knees wide apart with the inner edges of your feet on the floor and your ankles in line with your knees.",
@@ -1401,7 +1392,8 @@ html { background: var(--bg); }
       P.forEach(function (a, ix) { if (at < 0 && a.day === r.day && a.cat === 'car' && !a.bonus) at = ix; });
       P.splice(at < 0 ? P.length : at, 0, r);
     });
-    return P;
+    // Pigeon pose was removed. Its rows are still created above so every later id stays the same, then dropped here.
+    return P.filter(function (a) { return a.name !== 'Pigeon pose'; });
   }
 
   function pf(v) { return parseFloat(String(v).replace(',', '.')); }
@@ -3270,7 +3262,7 @@ html { background: var(--bg); }
   var cloudFailed = false;
   var saving = false, dirty = false, saveTimer = null;
 
-  function serialize() { return { v: 10, pv: 6, swp: swp, cel: cel, tm: tm, tma: tmA, seen: seen, startKg: startKg, startFat: startFat, plan: plan, done: done, logs: logs, recs: recs, level: level, body: bodyKg, weigh: weigh, goalKg: goalKg, goalMonths: goalMonths, nutri: nutriSerialize() }; }
+  function serialize() { return { v: 10, pv: 7, swp: swp, cel: cel, tm: tm, tma: tmA, seen: seen, startKg: startKg, startFat: startFat, plan: plan, done: done, logs: logs, recs: recs, level: level, body: bodyKg, weigh: weigh, goalKg: goalKg, goalMonths: goalMonths, nutri: nutriSerialize() }; }
   function apply(data) {
     coreCache = null;
     if (!data || typeof data !== 'object') return;
@@ -3346,6 +3338,8 @@ html { background: var(--bg); }
         plan.forEach(function (a) { have5[a.id] = 1; });
         plan = plan.concat(defaultPlan().filter(function (a) { return new5[a.name] && !have5[a.id]; }));
       }
+      // Plan version 7 removed the pigeon pose everywhere.
+      if ((data.pv | 0) < 7) plan = plan.filter(function (a) { return a.name !== 'Pigeon pose'; });
       if (!legacy && (data.pv | 0) < 6) {
         // Plan version 6 added the 90/90 plate press to the three lifting days, before the cardio finisher.
         var have6 = {};
