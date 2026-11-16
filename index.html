@@ -686,6 +686,9 @@ html { background: var(--bg); }
 .flegend .lp { background: linear-gradient(90deg, #D9432E, #B26F00, #0F8A5A, #6B4DF0, #2457F5, #C2257A); }
 .flegend .lc { opacity: .4; }
 .flegend .la { background: var(--line); }
+.nbar.nb-low i, .nbar.nb-over i { background: #D9432E; }
+.nbar.nb-mid i { background: #E08A00; }
+.nbar.nb-good i { background: #17A06A; }
 .lanehead { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin: 14px 0 0; font-size: 14px; }
 .lanehead span { font-size: 12px; color: var(--muted); }
 .fpick { margin-top: 8px; padding: 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
@@ -2822,9 +2825,13 @@ html { background: var(--bg); }
   }
 
   function bar(v, max, label) {
-    var pct = max ? Math.min(100, Math.round(v / max * 100)) : 0;
+    var raw = max ? v / max : 0, pct = Math.min(100, Math.round(raw * 100));
+    // Under half of the target is red, half to three quarters orange, from there to the target green.
+    // Going over is red for calories only. Extra protein stays green.
+    var st = raw > 1 ? (label === 'Calories' ? 'over' : 'good') : raw < 0.5 ? 'low' : raw < 0.75 ? 'mid' : 'good';
+    var word = { low: 'far below target', mid: 'getting there', good: raw > 1 ? 'above target' : 'on target', over: 'over target' }[st];
     return '<div class="nrow"><span>' + label + '</span><b>' + v + ' / ' + max + (label === 'Calories' ? ' kcal' : ' g') + '</b></div>' +
-      '<div class="nbar" role="img" aria-label="' + label + ' ' + pct + ' percent of target"><i style="width:' + pct + '%"></i></div>';
+      '<div class="nbar nb-' + st + '" role="img" aria-label="' + label + ' ' + Math.round(raw * 100) + ' percent of target, ' + word + '"><i style="width:' + pct + '%"></i></div>';
   }
 
   // One swipeable lane per category. Tapping a food opens the amount box under its lane.
