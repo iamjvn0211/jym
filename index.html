@@ -659,12 +659,13 @@ html { background: var(--bg); }
 .fl-veg { --c: #0F8A5A; --d: #0C6B45; }
 .fl-sauce { --c: #6B4DF0; --d: #4B32C2; }
 .fl-supp { --c: #2457F5; --d: #1A3FB8; }
+.fl-cheat { --c: #C2257A; --d: #9A1B60; }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) .fl-main { --d: #FF9484; } :root:not([data-theme="light"]) .fl-side { --d: #F5B94A; } :root:not([data-theme="light"]) .fl-veg { --d: #4FD19C; }
-  :root:not([data-theme="light"]) .fl-sauce { --d: #B3A2FF; } :root:not([data-theme="light"]) .fl-supp { --d: #9BB5FF; }
+  :root:not([data-theme="light"]) .fl-sauce { --d: #B3A2FF; } :root:not([data-theme="light"]) .fl-supp { --d: #9BB5FF; } :root:not([data-theme="light"]) .fl-cheat { --d: #FF8CC6; }
 }
 :root[data-theme="dark"] .fl-main { --d: #FF9484; } :root[data-theme="dark"] .fl-side { --d: #F5B94A; } :root[data-theme="dark"] .fl-veg { --d: #4FD19C; }
-:root[data-theme="dark"] .fl-sauce { --d: #B3A2FF; } :root[data-theme="dark"] .fl-supp { --d: #9BB5FF; }
+:root[data-theme="dark"] .fl-sauce { --d: #B3A2FF; } :root[data-theme="dark"] .fl-supp { --d: #9BB5FF; } :root[data-theme="dark"] .fl-cheat { --d: #FF8CC6; }
 .fl .lanehead b { color: var(--d); }
 .fl .dc { flex: 0 0 138px; padding: 0; gap: 0; overflow: hidden; border-radius: 16px; background: var(--surface); }
 .fl .ft { display: flex; align-items: baseline; gap: 4px; padding: 9px 11px 8px; background: var(--c); color: #fff; }
@@ -682,8 +683,9 @@ html { background: var(--bg); }
 .flegend { display: flex; flex-wrap: wrap; gap: 4px 12px; margin: 10px 0 0; font-size: 11.5px; color: var(--muted); }
 .flegend span { display: inline-flex; align-items: center; gap: 5px; }
 .flegend i { width: 14px; height: 5px; border-radius: 3px; background: var(--muted); }
-.flegend .lp { background: linear-gradient(90deg, #D9432E, #B26F00, #0F8A5A, #6B4DF0, #2457F5); }
+.flegend .lp { background: linear-gradient(90deg, #D9432E, #B26F00, #0F8A5A, #6B4DF0, #2457F5, #C2257A); }
 .flegend .lc { opacity: .4; }
+.flegend .la { background: var(--line); }
 .lanehead { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin: 14px 0 0; font-size: 14px; }
 .lanehead span { font-size: 12px; color: var(--muted); }
 .fpick { margin-top: 8px; padding: 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
@@ -2625,9 +2627,10 @@ html { background: var(--bg); }
     { k: 'side', label: 'Sides', base: '100g' },
     { k: 'veg', label: 'Fruits and vegetables', base: '1pc' },
     { k: 'sauce', label: 'Sauces', base: '50ml' },
-    { k: 'supp', label: 'Supplements', base: '100g' }
+    { k: 'supp', label: 'Supplements', base: '100g' },
+    { k: 'cheat', label: 'Cheat day', base: '1sv' }
   ];
-  var BASES = { '100g': { unit: 'g', base: 100, label: '100 g' }, '100ml': { unit: 'ml', base: 100, label: '100 ml' }, '50ml': { unit: 'ml', base: 50, label: '50 ml' }, '1pc': { unit: 'piece', base: 1, label: '1 piece' } };
+  var BASES = { '100g': { unit: 'g', base: 100, label: '100 g' }, '100ml': { unit: 'ml', base: 100, label: '100 ml' }, '50ml': { unit: 'ml', base: 50, label: '50 ml' }, '1pc': { unit: 'piece', base: 1, label: '1 piece' }, '1sv': { unit: 'serving', base: 1, label: '1 serving' } };
   function F(id, cat, n, unit, base, def, k, p, c, f) { return { id: id, cat: cat, n: n, unit: unit, base: base, def: def, k: k, p: p, c: c, f: f }; }
   var FOODS = [
     F('m1', 'main', 'White fish (cod), raw', 'g', 100, 100, 82, 18, 0, 0.7),
@@ -2653,18 +2656,26 @@ html { background: var(--bg); }
     F('c3', 'sauce', 'Vegetable broth', 'ml', 50, 50, 3, 0.1, 0.4, 0.1),
     F('c4', 'sauce', 'Chicken broth', 'ml', 50, 50, 4, 0.5, 0.2, 0.1),
     F('p1', 'supp', 'Whey protein powder', 'g', 100, 30, 390, 78, 8, 6),
-    F('p2', 'supp', 'Protein pudding', 'g', 100, 200, 70, 12, 4, 0.6)
+    F('p2', 'supp', 'Protein pudding', 'g', 100, 200, 70, 12, 4, 0.6),
+    F('x1', 'cheat', 'Wine, glass (150 ml)', 'serving', 1, 1, 125, 0.1, 4, 0),
+    F('x2', 'cheat', 'Beer, bottle (500 ml)', 'serving', 1, 1, 215, 2.5, 16, 0),
+    F('x3', 'cheat', 'Crémant, glass (100 ml)', 'serving', 1, 1, 75, 0.2, 1.5, 0),
+    F('x4', 'cheat', 'Pizza, whole', 'serving', 1, 1, 850, 35, 105, 30),
+    F('x5', 'cheat', 'Burger', 'serving', 1, 1, 600, 30, 40, 33),
+    F('x6', 'cheat', 'Döner kebab', 'serving', 1, 1, 650, 35, 60, 28)
   ];
   var nutPick = null; // { id, amt } while a food's amount is being confirmed
+  var nutOne = { open: false, n: '', k: '', p: '', c: '', f: '' }; // a one-off dish: logged once with its numbers, never saved to a lane
   var nutNew = { open: false, n: '', cat: 'main', base: '100g', k: '', p: '', c: '', f: '' };
 
   function r1(v) { return Math.round(v * 10) / 10; }
   function allFoods() { return FOODS.concat(nutri.custom || []); }
   function foodById(id) { var a = allFoods(); for (var i = 0; i < a.length; i++) if (a[i].id === id) return a[i]; return null; }
-  function baseText(fd) { return fd.unit === 'piece' ? (fd.base === 1 ? 'piece' : fd.base + ' pieces') : fd.base + ' ' + fd.unit; }
-  function amtText(fd, amt) { return fd.unit === 'piece' ? r1(amt) + (amt === 1 ? ' piece' : ' pieces') : r1(amt) + ' ' + fd.unit; }
-  function stepOf(fd) { return fd.unit === 'piece' ? 1 : fd.unit === 'ml' ? 25 : fd.def <= 50 ? 10 : 50; }
-  function maxAmt(fd) { return fd.unit === 'piece' ? 50 : 3000; }
+  function isCount(fd) { return fd.unit === 'piece' || fd.unit === 'serving'; }
+  function baseText(fd) { return isCount(fd) ? (fd.base === 1 ? fd.unit : fd.base + ' ' + fd.unit + 's') : fd.base + ' ' + fd.unit; }
+  function amtText(fd, amt) { return isCount(fd) ? r1(amt) + ' ' + fd.unit + (amt === 1 ? '' : 's') : r1(amt) + ' ' + fd.unit; }
+  function stepOf(fd) { return fd.unit === 'serving' ? 0.5 : fd.unit === 'piece' ? 1 : fd.unit === 'ml' ? 25 : fd.def <= 50 ? 10 : 50; }
+  function maxAmt(fd) { return isCount(fd) ? 50 : 3000; }
   function foodMacros(fd, amt) { var x = amt / fd.base; return { kcal: fd.k * x, p: fd.p * x, c: fd.c * x, f: fd.f * x }; }
   function pickText() {
     var fd = nutPick && foodById(nutPick.id), amt = fd ? pf(nutPick.amt) : NaN;
@@ -2684,7 +2695,7 @@ html { background: var(--bg); }
   }
   function cleanFood(x) {
     if (!x || typeof x.n !== 'string' || typeof x.id !== 'string' || !/^u[a-z0-9]{1,20}$/.test(x.id)) return null;
-    var cat = FCATS.filter(function (c) { return c.k === x.cat; })[0], unit = x.unit === 'ml' || x.unit === 'piece' ? x.unit : 'g';
+    var cat = FCATS.filter(function (c) { return c.k === x.cat; })[0], unit = x.unit === 'ml' || x.unit === 'piece' || x.unit === 'serving' ? x.unit : 'g';
     var base = +x.base, def = +x.def, ok = !!cat && base > 0 && base <= 1000 && def > 0 && def <= 3000 && !!x.n.trim();
     var o = { id: x.id, cat: x.cat, n: x.n.trim().slice(0, 40), unit: unit, base: base, def: def, own: 1 };
     ['k', 'p', 'c', 'f'].forEach(function (k) { var v = +x[k]; if (!(v >= 0 && v <= (k === 'k' ? 5000 : 500))) ok = false; o[k] = Math.round(v * 10) / 10; });
@@ -2720,8 +2731,8 @@ html { background: var(--bg); }
   function addPicked() {
     var fd = nutPick && foodById(nutPick.id), amt = fd ? pf(nutPick.amt) : NaN;
     if (!fd) return;
-    if (!(amt > 0 && amt <= maxAmt(fd))) { toast('Enter an amount between 0 and ' + maxAmt(fd) + ' ' + (fd.unit === 'piece' ? 'pieces' : fd.unit) + '.'); return; }
-    var m = foodMacros(fd, amt), x = cleanExtra({ n: fd.n + ', ' + amtText(fd, amt), t: 'dish', kcal: Math.round(m.kcal), p: r1(m.p), c: r1(m.c), f: r1(m.f) });
+    if (!(amt > 0 && amt <= maxAmt(fd))) { toast('Enter an amount between 0 and ' + maxAmt(fd) + ' ' + (isCount(fd) ? fd.unit + 's' : fd.unit) + '.'); return; }
+    var m = foodMacros(fd, amt), x = cleanExtra({ n: fd.unit === 'serving' ? r1(amt) + ' × ' + fd.n : fd.n + ', ' + amtText(fd, amt), t: 'dish', kcal: Math.round(m.kcal), p: r1(m.p), c: r1(m.c), f: r1(m.f) });
     if (x && logExtra(x)) nutPick = null;
     renderNutrition();
   }
@@ -2822,18 +2833,20 @@ html { background: var(--bg); }
     var cb = BASES[cat.base];
     var h = '<div class="fl fl-' + cat.k + '"><div class="lanehead"><b>' + esc(cat.label) + '</b><span>per ' + cb.label.replace(/^1 /, '') + '</span></div>';
     h += '<div class="lane" data-slot="' + cat.k + '" role="group" aria-label="' + esc(cat.label) + '">' + foods.map(function (fd) {
-      var sel = !!nutPick && nutPick.id === fd.id, tot = fd.p * 4 + fd.c * 4 + fd.f * 9 || 1;
-      var pp = Math.round(fd.p * 4 / tot * 100), cp = Math.round(fd.c * 4 / tot * 100), fp = Math.max(0, 100 - pp - cp);
+      var sel = !!nutPick && nutPick.id === fd.id, mac = fd.p * 4 + fd.c * 4 + fd.f * 9, tot = (fd.k > mac * 1.25 ? fd.k : mac) || 1;
+      // Calories that protein, carbs and fat do not explain are alcohol. That part of the bar stays empty.
+      var pp = Math.round(fd.p * 4 / tot * 100), cp = Math.round(fd.c * 4 / tot * 100), fp = Math.max(0, Math.round(fd.f * 9 / tot * 100)), ap = Math.max(0, 100 - pp - cp - fp);
+      if (tot === mac) { fp = Math.max(0, 100 - pp - cp); ap = 0; }
       var other = fd.unit !== cb.unit || fd.base !== cb.base;
       return '<button type="button" class="dc' + (sel ? ' sel' : '') + '" data-act="nfpick" data-id="' + esc(fd.id) + '" aria-expanded="' + sel + '">' +
         '<span class="ft"><b>' + Math.round(fd.k) + '</b><i>kcal' + (other ? ' per ' + baseText(fd) : '') + '</i></span>' +
         '<span class="fb"><span class="dn">' + esc(fd.n) + '</span>' +
-        '<span class="fm" role="img" aria-label="Calories: ' + pp + ' percent protein, ' + cp + ' percent carbs, ' + fp + ' percent fat"><i style="width:' + pp + '%"></i><i style="width:' + cp + '%"></i><i style="width:' + fp + '%"></i></span>' +
+        '<span class="fm" role="img" aria-label="Calories: ' + pp + ' percent protein, ' + cp + ' percent carbs, ' + fp + ' percent fat' + (ap ? ', ' + ap + ' percent alcohol' : '') + '"><i style="width:' + pp + '%"></i><i style="width:' + cp + '%"></i><i style="width:' + fp + '%"></i></span>' +
         '<span class="dm"><b>' + r1(fd.p) + ' g</b> protein' + (fd.own ? ' · yours' : '') + '</span></span></button>';
     }).join('') + '</div>';
     var fd = nutPick && foodById(nutPick.id);
     if (fd && fd.cat === cat.k) {
-      var un = fd.unit === 'piece' ? 'pieces' : fd.unit;
+      var un = isCount(fd) ? fd.unit + 's' : fd.unit;
       h += '<div class="fpick"><b>' + esc(fd.n) + '</b><label for="nf-amt">How much? (' + un + ')</label>' +
         '<div class="famt"><button type="button" class="ghost" data-act="nfstep" data-d="-1" aria-label="Less">−</button>' +
         '<input type="text" inputmode="decimal" autocomplete="off" id="nf-amt" data-nf="amt" value="' + esc(nutPick.amt) + '">' +
@@ -2847,9 +2860,30 @@ html { background: var(--bg); }
     return h;
   }
   var DAYLONG = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+  function oneOffHtml() {
+    var b = nutOne;
+    if (!b.open) return '<div class="editextra" style="margin-top:14px"><button type="button" class="ghost" data-act="noopen">Add a one-off dish</button></div>';
+    return '<div class="fpick" style="margin-top:14px"><b>One-off dish</b><p class="fine" style="margin:4px 0 0">Logged once for ' + DAYLONG[nutDay] + ' with the numbers you type. It is not saved to any row.</p><div class="bform" style="margin-top:8px">' +
+      '<label class="wide" for="no-n">Name (optional)<input type="text" id="no-n" data-no="n" maxlength="40" placeholder="e.g. Lunch at the canteen" value="' + esc(b.n) + '"></label>' +
+      '<label for="no-k">Calories (kcal)<input type="text" inputmode="decimal" autocomplete="off" id="no-k" data-no="k" value="' + esc(b.k) + '"></label>' +
+      '<label for="no-p">Protein (g)<input type="text" inputmode="decimal" autocomplete="off" id="no-p" data-no="p" value="' + esc(b.p) + '"></label>' +
+      '<label for="no-c">Carbs (g)<input type="text" inputmode="decimal" autocomplete="off" id="no-c" data-no="c" value="' + esc(b.c) + '"></label>' +
+      '<label for="no-f">Fat (g)<input type="text" inputmode="decimal" autocomplete="off" id="no-f" data-no="f" value="' + esc(b.f) + '"></label></div>' +
+      '<p class="fine">Numbers are for the whole dish as you ate it. If you leave calories empty they are worked out from protein, carbs and fat.</p>' +
+      '<div class="fbtns"><button type="button" class="primary" data-act="nosave">Add to ' + DAYLONG[nutDay] + '</button><button type="button" class="ghost" data-act="noopen">Cancel</button></div></div>';
+  }
+  function logOneOff() {
+    var p = pf(nutOne.p) || 0, c = pf(nutOne.c) || 0, f = pf(nutOne.f) || 0, k = pf(nutOne.k);
+    if (!(k >= 0)) k = Math.round(4 * p + 4 * c + 9 * f);
+    if (!(k > 0) && !(p > 0)) { toast('Enter calories, or at least protein, carbs or fat.'); return; }
+    if (!(k <= 5000 && p <= 500 && c <= 800 && f <= 500)) { toast('Those numbers look off. Check them.'); return; }
+    var x = cleanExtra({ n: nutOne.n.trim() || 'One-off dish', t: 'dish', kcal: Math.round(k), p: r1(p), c: r1(c), f: r1(f) });
+    if (x && logExtra(x)) nutOne = { open: false, n: '', k: '', p: '', c: '', f: '' };
+    renderNutrition();
+  }
   function newFoodHtml() {
     var b = nutNew;
-    if (!b.open) return '<div class="editextra" style="margin-top:14px"><button type="button" class="ghost" data-act="nnopen">Add your own ingredient</button></div>';
+    if (!b.open) return '<div class="editextra" style="margin-top:8px"><button type="button" class="ghost" data-act="nnopen">Add your own ingredient</button></div>';
     return '<div class="fpick" style="margin-top:14px"><b>Your own ingredient</b><div class="bform" style="margin-top:8px">' +
       '<label class="wide" for="nn-n">Name<input type="text" id="nn-n" data-nn="n" maxlength="40" placeholder="e.g. Turkey breast" value="' + esc(b.n) + '"></label>' +
       '<label for="nn-cat">Category<select id="nn-cat" data-nn="cat">' + FCATS.map(function (c) { return '<option value="' + c.k + '"' + (b.cat === c.k ? ' selected' : '') + '>' + esc(c.label) + '</option>'; }).join('') + '</select></label>' +
@@ -2885,7 +2919,7 @@ html { background: var(--bg); }
 
     html += '<div><h3>Add food</h3><p class="fine" style="margin:0 0 2px">Swipe a row sideways, tap a food, then confirm or change the amount.</p>' +
       FCATS.map(laneHtml).join('') +
-      '<p class="flegend"><span>Bar = share of calories</span><span><i class="lp"></i>Protein</span><span><i class="lc"></i>Carbs</span><span><i class="lf"></i>Fat</span></p>' + newFoodHtml() +
+            '<p class="flegend"><span>Bar = share of calories</span><span><i class="lp"></i>Protein</span><span><i class="lc"></i>Carbs</span><span><i class="lf"></i>Fat</span><span><i class="la"></i>Alcohol</span></p>' + oneOffHtml() + newFoodHtml() +
       '<p class="fine">Meat and fish are weighed raw, sides cooked unless the name says dry. Values are typical averages, so a day can be off by 10 to 20%.</p></div>';
 
     html += '<div><h3>How this is worked out</h3><p class="fine">Estimates only. Your body weight of ' + fmtN(bodyKg) + ' kg, 1.78 m and 36 years give about ' + T.bmr + ' kcal at rest (Mifflin-St Jeor). With a lightly active week (x1.35) that is about ' + T.tdee +
@@ -3825,6 +3859,8 @@ html { background: var(--bg); }
     }
     else if (act === 'nnopen') { nutNew.open = !nutNew.open; renderNutrition(); if (nutNew.open) { var nn0 = document.getElementById('nn-n'); if (nn0) nn0.focus(); } }
     else if (act === 'nnsave') saveNewFood();
+    else if (act === 'noopen') { nutOne.open = !nutOne.open; renderNutrition(); if (nutOne.open) { var no0 = document.getElementById('no-k'); if (no0) no0.focus(); } }
+    else if (act === 'nosave') logOneOff();
     else if (act === 'nxdel') { var cx = curNutri(); if (nutri.days[cx.key]) { (cx.day.extra || []).splice(+t.getAttribute('data-i'), 1); save(); } renderNutrition(); }
     else if (act === 'remove') {
       var id = t.getAttribute('data-id');
@@ -3839,6 +3875,8 @@ html { background: var(--bg); }
     if (t.getAttribute('data-nf') === 'amt' && nutPick) { nutPick.amt = t.value; var pv = document.getElementById('nf-prev'); if (pv) pv.textContent = pickText(); }
     var k = t.getAttribute('data-nn');
     if (k && nutNew.hasOwnProperty(k) && k !== 'open') nutNew[k] = t.value;
+    var ko = t.getAttribute('data-no');
+    if (ko && nutOne.hasOwnProperty(ko) && ko !== 'open') nutOne[ko] = t.value;
   });
   function importFile(inp) {
     var f = inp.files && inp.files[0];
