@@ -688,6 +688,10 @@ html { background: var(--bg); }
 .flegend .la { background: var(--line); }
 .nbar.nb-low i, .nbar.nb-over i { background: #D9432E; }
 .nbar.nb-mid i { background: #E08A00; }
+svg.chart .wb.n.c-low { fill: #D9432E; }
+svg.chart .wb.n.c-mid { fill: #E08A00; }
+svg.chart .wb.n.c-good { fill: #17A06A; }
+.legend .ln2.ln3 { background: linear-gradient(90deg, #17A06A 0 34%, #E08A00 34% 67%, #D9432E 67%); }
 .nbar.nb-good i { background: #17A06A; }
 .lanehead { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin: 14px 0 0; font-size: 14px; }
 .lanehead span { font-size: 12px; color: var(--muted); }
@@ -3038,7 +3042,13 @@ html { background: var(--bg); }
       }
       if (!future) {
         var nh = Math.max(nv * ph, nv > 0 ? 2 : 0);
-        svg += '<rect class="wb n" x="' + (cx + 1).toFixed(1) + '" y="' + (T + ph - nh).toFixed(1) + '" width="' + bw + '" height="' + nh.toFixed(1) + '" rx="2"/>';
+        // Same colours as the bars on the Nutrition tab. The worse of calories and protein decides.
+        var nc = '';
+        if (d.n && d.n.T) {
+          var kr = d.n.kcal / d.n.T.kcal, pr = d.n.p / d.n.T.p, rk = function (r, over) { return r > 1 ? (over ? 2 : 0) : r < 0.5 ? 2 : r < 0.75 ? 1 : 0; };
+          nc = ' c-' + ['good', 'mid', 'low'][Math.max(rk(kr, true), rk(pr, false))];
+        }
+        svg += '<rect class="wb n' + nc + '" x="' + (cx + 1).toFixed(1) + '" y="' + (T + ph - nh).toFixed(1) + '" width="' + bw + '" height="' + nh.toFixed(1) + '" rx="2"/>';
       }
       svg += '<text x="' + cx.toFixed(1) + '" y="' + (H - 12) + '" text-anchor="middle">' + DAYN[i] + '</text>';
       if (tv === null && !future) svg += '<text x="' + (cx - bw / 2 - 1).toFixed(1) + '" y="' + (T + ph - 4) + '" text-anchor="middle" style="font-size:8px">' + (d.t.all > 0 ? 'bonus' : 'rest') + '</text>';
@@ -3167,7 +3177,7 @@ html { background: var(--bg); }
 
     // chart
     html += '<div><h3>Strength and nutrition by day</h3>' + weekChart(chartWs) +
-      '<div class="legend"><span><i class="lt"></i>Training, planned minutes done</span><span><i class="ln2"></i>Nutrition, calories and protein vs target</span></div>' +
+      '<div class="legend"><span><i class="lt"></i>Training, planned minutes done</span><span><i class="ln2 ln3"></i>Nutrition, calories and protein vs target. Green is on target, orange is getting there, red is far below or over on calories.</span></div>' +
       '<p class="fine">' + (chartWs.nutriOn ? '' : 'Nothing is logged this week yet, so the nutrition bars are empty. ') + 'Log what you eat on the Nutrition tab.</p></div>';
 
     // overview
