@@ -452,6 +452,7 @@ input[type="text"]:focus, input[type="number"]:focus, select:focus { border-colo
 .xbar { height: 14px; border-radius: 7px; background: var(--line); overflow: hidden; margin: 6px 0 4px; }
 .xbar i { display: block; height: 100%; border-radius: 7px; background: linear-gradient(#FFD84D, #F5A800); }
 .lvfine { font-size: 12px; font-weight: 700; color: var(--muted); }
+.bcell .opt { font-size: 10px; line-height: 1; padding: 3px 6px; border: 1px solid var(--line); border-radius: 999px; color: var(--muted); }
 .lvfine.lvgate { margin-top: 3px; font-weight: 600; line-height: 1.35; }
 /* badges */
 .bgrid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px 6px; }
@@ -2224,12 +2225,12 @@ html { background: var(--bg); }
     html += '<div><h3>Badges</h3><div class="bgrid">' + defs.map(function (b, i) {
       var next = b.tier >= 4 ? 'Max level' : b.val + ' of ' + b.th[b.tier] + b.unit;
       var nm = b.tier ? cap1(TIER_NAMES[b.tier - 1]) : 'Locked';
-      return '<button type="button" class="bcell' + (i === badgeSel ? ' sel' : '') + '" data-act="badgesel" data-i="' + i + '" aria-pressed="' + (i === badgeSel) + '" aria-label="' + esc(b.label + ', ' + nm + ', ' + next) + '">' +
-        badgeSvg(b.sym, b.tier ? TIER_NAMES[b.tier - 1] : 'locked', 62) + '<b>' + esc(b.label) + '</b>' +
+      return '<button type="button" class="bcell' + (i === badgeSel ? ' sel' : '') + '" data-act="badgesel" data-i="' + i + '" aria-pressed="' + (i === badgeSel) + '" aria-label="' + esc(b.label + (b.gate ? '' : ', optional, not needed for the next tier') + ', ' + nm + ', ' + next) + '">' +
+        badgeSvg(b.sym, b.tier ? TIER_NAMES[b.tier - 1] : 'locked', 62) + '<b>' + esc(b.label) + '</b>' + (b.gate ? '' : '<span class="opt">Optional</span>') +
         '<span class="mini t-' + TIER_NAMES[Math.min(3, b.tier)] + '"><i style="width:' + Math.round(b.frac * 100) + '%"></i></span><em>' + esc(next) + '</em></button>';
     }).join('') + '</div></div>';
     var sb = defs[badgeSel] || defs[0];
-    html += '<div class="ladder"><div class="lh"><b>' + esc(sb.label) + ' badge</b><span>' + esc(sb.what) + '</span></div><div class="lsteps">' +
+    html += '<div class="ladder"><div class="lh"><b>' + esc(sb.label) + ' badge</b><span>' + esc(sb.what) + (sb.gate ? '' : '. Optional: you never need it to move up a tier') + '</span></div><div class="lsteps">' +
       TIER_NAMES.map(function (t, i) {
         var req = sb.th[i] + sb.unit;
         return '<div class="lstep' + (i < sb.tier ? ' got' : '') + (i === sb.tier - 1 ? ' now' : '') + '">' + badgeSvg(sb.sym, i < sb.tier ? t : 'locked', 54) + '<b>' + cap1(t) + '</b><em>' + esc(req) + '</em></div>';
@@ -3073,7 +3074,6 @@ html { background: var(--bg); }
     for (var i = 1; i <= 5; i++) s += '<span class="' + (i <= n ? 'on' : '') + '">' + (i <= n ? '★' : '☆') + '</span>';
     return '<span class="stars" role="img" aria-label="' + n + ' of 5 stars">' + s + '</span>';
   }
-  var wcWeek = 'last';
   function weekChart(ws) {
     var W = 320, H = 190, L = 34, R = 8, T = 12, B = 30, pw = W - L - R, ph = H - T - B, gw = pw / 7, bw = Math.min(14, gw / 2 - 3), i;
     function Y(v) { return T + (1 - v) * ph; }
@@ -3123,11 +3123,10 @@ html { background: var(--bg); }
     var total = sess.length, nDone = sess.filter(function (x) { return x.st === 'done'; }).length, nMiss = sess.filter(function (x) { return x.st === 'missed'; }).length;
     var rem = total - nDone - nMiss, allDone = total > 0 && nDone === total;
     var wkStreak = streaks().cur, ss = sessionStreak().cur, text, win = false;
-    var lastLine = hasLast && todayIdx <= 1 ? ' Last week earned ' + lw.stars + (lw.stars === 1 ? ' star.' : ' stars.') : '';
     if (allDone) {
       text = dayPick(['All ' + total + ' sessions are done this week. Anything extra is a bonus.', 'Perfect week locked in. Rest, eat, enjoy it.', total + ' out of ' + total + '. Come Monday we go again.', 'Week complete. That is how it is done.'], 'all');
     } else if (nDone === 0 && nMiss === 0) {
-      text = dayPick(['New week, clean slate. Show up for the first session.', 'Fresh week. The first rep is the hardest, so make it count.', 'Nothing on the board yet. One session changes that.', 'Start the week with a session and the rest follows.'], 'new') + lastLine;
+      text = dayPick(['New week, clean slate. Show up for the first session.', 'Fresh week. The first rep is the hardest, so make it count.', 'Nothing on the board yet. One session changes that.', 'Start the week with a session and the rest follows.'], 'new');
     } else if (nDone === 0) {
       text = dayPick(['Nothing on the board yet this week. Today is the day to change that.', 'The week is slipping. One session turns it around.', 'No sessions yet. Pick the next one and go.'], 'none');
     } else if (nMiss === 0 && nDone === 1) {
@@ -3170,8 +3169,7 @@ html { background: var(--bg); }
     var ws = weekScore(cur), lw = weekScore(prev);
     var hasData = Object.keys(done).some(function (k) { return k >= START; });
     var hasLast = prev >= START;
-    var noLast = wcWeek === 'last' && !hasLast;
-    var chartWs = wcWeek === 'last' && hasLast ? lw : ws;
+    var chartWs = ws;
     var hr = now.getHours();
     var greet = hr < 11 ? 'Good morning' : hr < 18 ? 'Good afternoon' : 'Good evening';
     var hh = homeHead(ws, lw, hasData, hasLast), head = hh.text;
@@ -3215,17 +3213,14 @@ html { background: var(--bg); }
         '<div class="r"><span>Strength time</span><b>' + hm(w.minutes) + '</b></div>' +
         '<div class="r"><span>Bonus days (extra XP only)</span><b>' + w.bDays + (w.bDays === 1 ? ' day' : ' days') + '</b></div></div>' + (note ? '<p class="fine">' + note + '</p>' : '') + '</div>';
     }
-    html += '<div><h3>Your weeks</h3>' +
-      ratingCard('Last week', lw, lw.nutriOn ? '' : 'Nutrition was not logged, so this rating is training only.', hasLast ? '' : 'Your first week starts Monday 9 November. Its star rating shows up here the week after.') +
-      '<div style="height:10px"></div>' + ratingCard(notStarted ? 'First week' : 'This week, on pace so far', ws, 'Rated against the days up to today, so Monday morning does not start at one star.', notStarted ? 'Starts Monday 9 November. Your first rating appears once you have trained a day.' : '') +
+    html += '<div><h3>Your week</h3>' +
+      ratingCard(notStarted ? 'First week' : 'This week, on pace so far', ws, 'Rated against the days up to today, so Monday morning does not start at one star.', notStarted ? 'Starts Monday 9 November. Your first rating appears once you have trained a day.' : '') +
       '<p class="fine">Stars: under 25% is 1, then 45%, 65% and 85% for 2, 3 and 4 stars. Training counts 60% (planned minutes done, plus 3 strength days), nutrition 40% (calories near target and protein hit, days not logged count as 0).</p></div>';
 
     // chart
-    html += '<div><h3>Strength and nutrition by day</h3><div class="seg two" role="group" aria-label="Week" style="margin-bottom:10px">' +
-      [['last', 'Last week'], ['this', 'This week']].map(function (m) { return '<button type="button" data-act="wcweek" data-id="' + m[0] + '" aria-pressed="' + (wcWeek === m[0]) + '">' + m[1] + '</button>'; }).join('') + '</div>' +
-      (noLast ? '<div class="eqcard"><p class="line" style="margin:0">No records for last week. Your first week started Monday 9 November.</p></div>' : weekChart(chartWs) +
+    html += '<div><h3>Strength and nutrition by day</h3>' + weekChart(chartWs) +
       '<div class="legend"><span><i class="lt"></i>Training, planned minutes done</span><span><i class="ln2"></i>Nutrition, calories and protein vs target</span></div>' +
-      '<p class="fine">' + (chartWs.nutriOn ? '' : 'No meals were logged that week, so the nutrition bars are empty. ') + 'Log meals on the Nutrition tab by ticking them.</p>') + '</div>';
+      '<p class="fine">' + (chartWs.nutriOn ? '' : 'No meals are logged this week yet, so the nutrition bars are empty. ') + 'Log meals on the Nutrition tab by ticking them.</p></div>';
 
     // overview
     html += '<div><h3>Overview</h3><div class="rows">' +
@@ -3898,7 +3893,6 @@ html { background: var(--bg); }
       renderList();
     }
     else if (act === 'nday') { nutDay = +t.getAttribute('data-i') || 0; nutOpen = null; renderNutrition(); }
-    else if (act === 'wcweek') { wcWeek = t.getAttribute('data-id') === 'this' ? 'this' : 'last'; renderWelcome(); }
     else if (act === 'nbtype') { nutBuild.type = t.getAttribute('data-id') === 'drink' ? 'drink' : 'dish'; renderNutrition(); }
     else if (act === 'nbmode') { nutBuild.mode = t.getAttribute('data-id') === 'manual' ? 'manual' : 'build'; renderNutrition(); }
     else if (act === 'nbadd') addLine();
