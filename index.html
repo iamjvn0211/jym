@@ -2607,12 +2607,14 @@ html { background: var(--bg); }
   function dishById(id) { for (var i = 0; i < DISHES.length; i++) if (DISHES[i].id === id) return DISHES[i]; return null; }
   function isTrain(i) { return i === 0 || i === 2 || i === 4; }
 
-  // 2000 kcal on lifting days, 1800 on the other days. Protein 1.8 g per kg, fat 0.7 g per kg, carbs fill the rest.
+  // 1800 kcal on lifting days, 1600 on the other days. Days before 16 November 2026 keep the earlier 2000 and 1800,
+  // so weeks that are already finished keep their scores. Protein 1.8 g per kg, fat 0.7 g per kg, carbs fill the rest.
   // Mifflin-St Jeor with activity factor 1.5 is only used to show the estimated maintenance.
-  function nutriTargets(train) {
+  var KCAL_CUT_FROM = '2026-11-16';
+  function nutriTargets(train, dk) {
     var bmr = 10 * bodyKg + 6.25 * HEIGHT_CM - 5 * AGE_Y + 5;
     var tdee = bmr * 1.35;
-    var kcal = train ? 2000 : 1800;
+    var kcal = (train ? 1800 : 1600) + (dk && dk < KCAL_CUT_FROM ? 200 : 0);
     var p = Math.round(1.8 * bodyKg / 5) * 5;
     var f = Math.round(0.7 * bodyKg / 5) * 5;
     var c = Math.max(0, Math.round((kcal - p * 4 - f * 9) / 20) * 5);
@@ -2889,7 +2891,7 @@ html { background: var(--bg); }
       if (d.ids.length === 3) {
         var bd = dishById(d.ids[0]), ld = dishById(d.ids[1]), dd = dishById(d.ids[2]);
         if (!bd || !ld || !dd || bd.pool !== 'b' || ld.pool !== 'l' || dd.pool !== 'd') return;
-        var wi = (new Date(k + 'T12:00:00').getDay() + 6) % 7, Tn = nutriTargets(isTrain(wi));
+        var wi = (new Date(k + 'T12:00:00').getDay() + 6) % 7, Tn = nutriTargets(isTrain(wi), k);
         var m3 = Math.max(0.75, Math.min(1.75, Math.round(Tn.kcal / (bd.kcal + ld.kcal + dd.kcal) * 4) / 4));
         [bd, ld].forEach(function (x, ix) {
           if (d.eaten && d.eaten[ix === 0 ? 'b' : 'l']) carry.push({ n: x.name, t: 'dish', kcal: Math.round(x.kcal * m3), p: Math.round(x.p * m3), c: Math.round(x.c * m3), f: Math.round(x.f * m3) });
@@ -2914,7 +2916,7 @@ html { background: var(--bg); }
   }
 
   function curNutri() {
-    var T = nutriTargets(isTrain(planDay(iso(todayMon), nutDay)));
+    var T = nutriTargets(isTrain(planDay(iso(todayMon), nutDay)), iso(addDays(todayMon, nutDay)));
     var key = iso(addDays(todayMon, nutDay));
     var day = getDay(key, T);
     return { T: T, key: key, day: day, pl: planFor(day.ids, T.kcal) };
@@ -2957,7 +2959,7 @@ html { background: var(--bg); }
     }).join('') + '</div>';
     var html = '<div>' + chips +
       '<p class="line"><b>' + (isTrain(planDay(iso(todayMon), nutDay)) ? 'Lifting day' : 'Rest or cardio day') + '</b>: ' +
-      (isTrain(planDay(iso(todayMon), nutDay)) ? '2000 kcal, 200 more than on rest days. Eat your carbs around the session.' : '1800 kcal, protein stays high.') + '</p>' +
+      (isTrain(planDay(iso(todayMon), nutDay)) ? '1800 kcal, 200 more than on rest days. Eat your carbs around the session.' : '1600 kcal, protein stays high.') + '</p>' +
       bar(ea.kcal, T.kcal, 'Calories') + bar(ea.p, T.p, 'Protein') +
       '<p class="fine">Left today: ' + Math.max(0, T.kcal - ea.kcal) + ' kcal and ' + Math.max(0, T.p - ea.p) + ' g protein.</p><p class="fine">Daily target: ' + T.kcal + ' kcal, ' + T.p + ' g protein, about ' + T.c + ' g carbs and ' + T.f + ' g fat. Tick a meal when you eat it.</p></div>';
 
@@ -2977,7 +2979,7 @@ html { background: var(--bg); }
     html += customHtml(c);
 
     html += '<div><h3>How this is worked out</h3><p class="fine">Estimates only. Your body weight of ' + fmtN(bodyKg) + ' kg, 1.78 m and 36 years give about ' + T.bmr + ' kcal at rest (Mifflin-St Jeor). With a lightly active week (x1.35) that is about ' + T.tdee +
-      ' kcal, and the plan is ' + T.kcal + ' kcal today, about ' + Math.max(0, T.tdee - T.kcal) + ' kcal below that. Lifting days (Mon, Wed, Fri) get 2000 kcal, all other days 1800. Protein is 1.8 g per kg, in the 1.6 to 2.2 g per kg range often recommended for lifters who are cutting. Dishes are simple, use no pork, and the meals scale in quarter portions to fit the day. Check with a doctor or dietitian if you have a health condition.</p></div>';
+      ' kcal, and the plan is ' + T.kcal + ' kcal today, about ' + Math.max(0, T.tdee - T.kcal) + ' kcal below that. Lifting days (Mon, Wed, Fri) get 1800 kcal, all other days 1600. Protein is 1.8 g per kg, in the 1.6 to 2.2 g per kg range often recommended for lifters who are cutting. Dishes are simple, use no pork, and the meals scale in quarter portions to fit the day. Check with a doctor or dietitian if you have a health condition.</p></div>';
     el.nutrition.innerHTML = html;
     Array.prototype.forEach.call(el.nutrition.querySelectorAll('.lane'), function (l) {
       var k = l.getAttribute('data-slot'), sel = l.querySelector('.dc.sel');
@@ -3024,9 +3026,9 @@ html { background: var(--bg); }
     if (!day || !Array.isArray(day.ids)) {
       // Only the last 14 days are kept in full. Older days keep a short summary, so old weeks still count.
       var h0 = nutri.hist && nutri.hist[dk0];
-      return h0 && h0.s > 0 ? { score: h0.s, kcal: h0.k, p: h0.p, T: nutriTargets(isTrain(planDay(k, i))) } : null;
+      return h0 && h0.s > 0 ? { score: h0.s, kcal: h0.k, p: h0.p, T: nutriTargets(isTrain(planDay(k, i)), dk0) } : null;
     }
-    var T = nutriTargets(isTrain(planDay(k, i))), pl = planFor(day.ids, T.kcal), kc = 0, p = 0;
+    var T = nutriTargets(isTrain(planDay(k, i)), dk0), pl = planFor(day.ids, T.kcal), kc = 0, p = 0;
     pl.items.forEach(function (it) { if (day.eaten && day.eaten[it.slot.k]) { kc += it.kcal; p += it.p; } });
     (day.extra || []).forEach(function (x) { kc += x.kcal; p += x.p; });
     if (kc <= 0) return null;
