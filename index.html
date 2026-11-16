@@ -2607,7 +2607,7 @@ html { background: var(--bg); }
     F('m5', 'main', 'Ground beef, lean, raw', 'g', 100, 100, 176, 20, 0, 10),
     F('m6', 'main', 'Steak, lean, raw', 'g', 100, 100, 150, 21, 0, 7),
     F('s1', 'side', 'Rice, cooked', 'g', 100, 100, 130, 2.7, 28, 0.3),
-    F('s2', 'side', 'High-protein pasta, cooked', 'g', 100, 100, 150, 12, 20, 1.5),
+    F('s2', 'side', 'High-protein pasta, dry', 'g', 100, 100, 330, 30, 40, 5.5),
     F('s3', 'side', 'Pasta, cooked', 'g', 100, 100, 158, 5.8, 31, 0.9),
     F('s4', 'side', 'Potatoes, boiled', 'g', 100, 100, 87, 1.9, 20, 0.1),
     F('s5', 'side', 'Potato dumplings, cooked', 'g', 100, 100, 110, 2, 24, 0.4),
@@ -2623,7 +2623,7 @@ html { background: var(--bg); }
     F('c3', 'sauce', 'Vegetable broth', 'ml', 50, 50, 3, 0.1, 0.4, 0.1),
     F('c4', 'sauce', 'Chicken broth', 'ml', 50, 50, 4, 0.5, 0.2, 0.1),
     F('p1', 'supp', 'Whey protein powder', 'g', 100, 30, 390, 78, 8, 6),
-    F('p2', 'supp', 'Protein pudding', 'g', 100, 200, 75, 10, 5.5, 1.5)
+    F('p2', 'supp', 'Protein pudding', 'g', 100, 200, 70, 12, 4, 0.6)
   ];
   var nutPick = null; // { id, amt } while a food's amount is being confirmed
   var nutNew = { open: false, n: '', cat: 'main', base: '100g', k: '', p: '', c: '', f: '' };
@@ -2848,7 +2848,7 @@ html { background: var(--bg); }
 
     html += '<div><h3>Add food</h3><p class="fine" style="margin:0 0 2px">Swipe a row sideways, tap a food, then confirm or change the amount.</p>' +
       FCATS.map(laneHtml).join('') + newFoodHtml() +
-      '<p class="fine">Meat and fish are weighed raw, sides cooked. Values are typical averages, so a day can be off by 10 to 20%.</p></div>';
+      '<p class="fine">Meat and fish are weighed raw, sides cooked unless the name says dry. Values are typical averages, so a day can be off by 10 to 20%.</p></div>';
 
     html += '<div><h3>How this is worked out</h3><p class="fine">Estimates only. Your body weight of ' + fmtN(bodyKg) + ' kg, 1.78 m and 36 years give about ' + T.bmr + ' kcal at rest (Mifflin-St Jeor). With a lightly active week (x1.35) that is about ' + T.tdee +
       ' kcal, and the plan is ' + T.kcal + ' kcal today, about ' + Math.max(0, T.tdee - T.kcal) + ' kcal below that. Lifting days (Mon, Wed, Fri) get 1800 kcal, all other days 1600. Protein is 1.8 g per kg, in the 1.6 to 2.2 g per kg range often recommended for lifters who are cutting. Check with a doctor or dietitian if you have a health condition.</p></div>';
