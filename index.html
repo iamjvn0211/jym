@@ -654,6 +654,31 @@ html { background: var(--bg); }
 .dc .dm { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
 .dc .dp { margin-top: 4px; font-size: 11px; font-weight: 600; color: var(--grn); }
 .dc.sel { border-color: var(--grn); background: var(--grn-bg); box-shadow: inset 0 0 0 1px var(--grn); }
+.fl-main { --c: #D9432E; --d: #B93320; }
+.fl-side { --c: #B26F00; --d: #8A5A00; }
+.fl-veg { --c: #0F8A5A; --d: #0C6B45; }
+.fl-sauce { --c: #6B4DF0; --d: #4B32C2; }
+.fl-supp { --c: #2457F5; --d: #1A3FB8; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .fl-main { --d: #FF9484; } :root:not([data-theme="light"]) .fl-side { --d: #F5B94A; } :root:not([data-theme="light"]) .fl-veg { --d: #4FD19C; }
+  :root:not([data-theme="light"]) .fl-sauce { --d: #B3A2FF; } :root:not([data-theme="light"]) .fl-supp { --d: #9BB5FF; }
+}
+:root[data-theme="dark"] .fl-main { --d: #FF9484; } :root[data-theme="dark"] .fl-side { --d: #F5B94A; } :root[data-theme="dark"] .fl-veg { --d: #4FD19C; }
+:root[data-theme="dark"] .fl-sauce { --d: #B3A2FF; } :root[data-theme="dark"] .fl-supp { --d: #9BB5FF; }
+.fl .lanehead b { color: var(--d); }
+.fl .dc { flex: 0 0 138px; padding: 0; gap: 0; overflow: hidden; border-radius: 16px; background: var(--surface); }
+.fl .ft { display: flex; align-items: baseline; gap: 4px; padding: 9px 11px 8px; background: var(--c); color: #fff; }
+.fl .ft b { font-size: 22px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
+.fl .ft i { font-style: normal; font-size: 11px; font-weight: 600; }
+.fl .fb { display: flex; flex-direction: column; gap: 6px; padding: 8px 11px 10px; }
+.fl .fm { display: flex; height: 6px; border-radius: 3px; overflow: hidden; background: var(--line); }
+.fl .fm i { display: block; height: 100%; }
+.fl .fm i:nth-child(1) { background: var(--c); }
+.fl .fm i:nth-child(2) { background: var(--muted); opacity: .4; }
+.fl .fm i:nth-child(3) { background: var(--muted); }
+.fl .dm b { color: var(--d); font-weight: 700; }
+.fl .dc.sel { border-color: var(--d); background: var(--surface); box-shadow: 0 0 0 2px var(--d); }
+.fl .lane { padding: 3px 3px 6px; }
 .lanehead { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin: 14px 0 0; font-size: 14px; }
 .lanehead span { font-size: 12px; color: var(--muted); }
 .fpick { margin-top: 8px; padding: 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
@@ -2789,11 +2814,17 @@ html { background: var(--bg); }
   // One swipeable lane per category. Tapping a food opens the amount box under its lane.
   function laneHtml(cat) {
     var foods = allFoods().filter(function (fd) { return fd.cat === cat.k; });
-    var h = '<div class="lanehead"><b>' + esc(cat.label) + '</b><span>per ' + BASES[cat.base].label.replace(/^1 /, '') + '</span></div>';
+    var cb = BASES[cat.base];
+    var h = '<div class="fl fl-' + cat.k + '"><div class="lanehead"><b>' + esc(cat.label) + '</b><span>per ' + cb.label.replace(/^1 /, '') + '</span></div>';
     h += '<div class="lane" data-slot="' + cat.k + '" role="group" aria-label="' + esc(cat.label) + '">' + foods.map(function (fd) {
-      var sel = !!nutPick && nutPick.id === fd.id;
+      var sel = !!nutPick && nutPick.id === fd.id, tot = fd.p * 4 + fd.c * 4 + fd.f * 9 || 1;
+      var pp = Math.round(fd.p * 4 / tot * 100), cp = Math.round(fd.c * 4 / tot * 100), fp = Math.max(0, 100 - pp - cp);
+      var other = fd.unit !== cb.unit || fd.base !== cb.base;
       return '<button type="button" class="dc' + (sel ? ' sel' : '') + '" data-act="nfpick" data-id="' + esc(fd.id) + '" aria-expanded="' + sel + '">' +
-        '<span class="dn">' + esc(fd.n) + '</span><span class="dm">' + Math.round(fd.k) + ' kcal per ' + baseText(fd) + '</span><span class="dm">' + r1(fd.p) + ' g protein</span>' + (fd.own ? '<span class="dp">Yours</span>' : '') + '</button>';
+        '<span class="ft"><b>' + Math.round(fd.k) + '</b><i>kcal' + (other ? ' per ' + baseText(fd) : '') + '</i></span>' +
+        '<span class="fb"><span class="dn">' + esc(fd.n) + '</span>' +
+        '<span class="fm" role="img" aria-label="Calories: ' + pp + ' percent protein, ' + cp + ' percent carbs, ' + fp + ' percent fat"><i style="width:' + pp + '%"></i><i style="width:' + cp + '%"></i><i style="width:' + fp + '%"></i></span>' +
+        '<span class="dm"><b>' + r1(fd.p) + ' g</b> protein' + (fd.own ? ' · yours' : '') + '</span></span></button>';
     }).join('') + '</div>';
     var fd = nutPick && foodById(nutPick.id);
     if (fd && fd.cat === cat.k) {
@@ -2807,6 +2838,7 @@ html { background: var(--bg); }
         '<button type="button" class="ghost" data-act="nfcancel">Cancel</button>' +
         (fd.own ? '<button type="button" class="ghost" data-act="nfdel">Delete ingredient</button>' : '') + '</div></div>';
     }
+    h += '</div>';
     return h;
   }
   var DAYLONG = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
@@ -2846,7 +2878,7 @@ html { background: var(--bg); }
         '<button type="button" class="ghost" style="min-height:36px;padding:0 10px" data-act="nxdel" data-i="' + i + '" aria-label="Remove ' + esc(x.n) + '">Remove</button></b></div>';
     }).join('') + '</div>' : '<p class="line" style="margin:0">Nothing logged yet. Pick a food below.</p>') + '</div>';
 
-    html += '<div><h3>Add food</h3><p class="fine" style="margin:0 0 2px">Swipe a row sideways, tap a food, then confirm or change the amount.</p>' +
+    html += '<div><h3>Add food</h3><p class="fine" style="margin:0 0 2px">Swipe a row sideways, tap a food, then confirm or change the amount. The bar on each card shows where its calories come from: protein in colour, then carbs and fat in grey.</p>' +
       FCATS.map(laneHtml).join('') + newFoodHtml() +
       '<p class="fine">Meat and fish are weighed raw, sides cooked unless the name says dry. Values are typical averages, so a day can be off by 10 to 20%.</p></div>';
 
