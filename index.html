@@ -2197,9 +2197,9 @@ svg.chart .wb.n.c-good { fill: #17A06A; }
       { k: 'meals', sym: 'apple', label: 'Meals', val: g.meals, th: T.meals, unit: '', what: 'foods logged, up to 4 a day' },
       { k: 'hours', sym: 'clock', label: 'Hours', val: Math.round(g.hours * 10) / 10, th: T.hours, unit: ' h', what: 'hours of strength sessions' },
       { k: 'top', sym: 'trophy', label: 'Top weeks', val: g.top, th: T.top, unit: '', what: 'five-star weeks' },
+      { k: 'goal', sym: 'target', label: 'Goal', val: Math.round(g.goalPct), th: T.goal, unit: '%', what: 'of the way to your goal weight' },
       { k: 'bonus', sym: 'bolt', label: 'Bonus', val: g.bdays, th: T.bonus, unit: ' days', what: 'days you did extra bonus exercises' },
-      { k: 'stretch', sym: 'stretch', label: 'Stretch', val: g.bstr, th: T.stretch, unit: '', what: 'posture stretches ticked' },
-      { k: 'goal', sym: 'target', label: 'Goal', val: Math.round(g.goalPct), th: T.goal, unit: '%', what: 'of the way to your goal weight' }
+      { k: 'stretch', sym: 'stretch', label: 'Stretch', val: g.bstr, th: T.stretch, unit: '', what: 'posture stretches ticked' }
     ].map(function (b) {
       var tier = 0;
       while (tier < 4 && b.val >= b.th[tier]) tier++;
