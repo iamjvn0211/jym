@@ -777,6 +777,35 @@ svg.chart .wb.n.c-good { fill: #17A06A; }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .lup { color: #4FD19C; } :root:not([data-theme="light"]) .lup.down { color: #F5B94A; } }
 :root[data-theme="dark"] .lup { color: #4FD19C; } :root[data-theme="dark"] .lup.down { color: #F5B94A; }
 .lup.flat, :root .lup.flat { color: var(--muted) !important; }
+.pvtop { display: flex; flex-direction: column; gap: 10px; margin: 0 0 12px; }
+.pvstrip .lvgate { display: none; }
+.pvseg { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.pvh { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.infob { flex: none; width: 36px; height: 36px; display: grid; place-items: center; padding: 0; background: none; border: 1px solid var(--line); border-radius: 50%; color: var(--muted); cursor: pointer; }
+.infob svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+.infob[aria-pressed="true"] { background: var(--acc); border-color: var(--acc); color: var(--onacc, #fff); }
+#panel-progress section.pv:not(.notes) :is(.fine, .legend, .flegend, .lvfine.lvgate) { display: none; }
+.pvbtn { width: 100%; }
+.pvdet { border-top: 1px solid var(--line); padding-top: 4px; }
+.pvdet > summary { cursor: pointer; list-style: none; display: flex; justify-content: space-between; align-items: center; min-height: 44px; font-weight: 600; color: var(--acc); }
+.pvdet > summary::-webkit-details-marker { display: none; }
+.pvdet > summary::after { content: "›"; font-size: 22px; transition: transform .2s; }
+.pvdet[open] > summary::after { transform: rotate(90deg); }
+.pvdetb { display: flex; flex-direction: column; gap: 14px; padding-top: 8px; }
+.st2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.stc { min-width: 0; padding: 12px; border: 1px solid var(--line); border-radius: 14px; background: var(--bg); display: flex; flex-direction: column; gap: 8px; }
+.stc h3, .encard h3 { margin: 0; }
+.stn { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; }
+.stn b { font-family: var(--font-display); font-size: 34px; font-weight: 800; line-height: 1; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.stn span { font-size: 12px; color: var(--muted); }
+.stn.wks b { color: var(--acc); }
+.stn.ss b { color: #EA580C; }
+.encard .stn b { font-size: 26px; }
+.weeks.wkmini { gap: 3px; margin-top: 2px; }
+.weeks.wkmini em { display: none; }
+.weeks.wkmini .wk { height: 30px; }
+.stc .ssrow { gap: 4px; justify-content: space-between; }
+.stc .sscell em { font-size: 11px; }
 .lanehead { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin: 14px 0 0; font-size: 14px; }
 .lanehead span { font-size: 12px; color: var(--muted); }
 .fpick { margin-top: 8px; padding: 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
@@ -911,24 +940,38 @@ svg.chart .wb.n.c-good { fill: #17A06A; }
   </div>
 
   <div class="tabpanel" id="panel-progress" role="tabpanel" aria-labelledby="tab-progress" hidden>
-    <section class="panel" aria-labelledby="h-game">
-      <h2 id="h-game">Level and badges</h2>
-      <div class="progress" id="game"></div>
-    </section>
+    <div class="pvtop">
+      <div id="lvstrip" class="pvstrip"></div>
+      <div class="seg pvseg" role="group" aria-label="Progress area">
+        <button type="button" data-act="pview" data-v="body" aria-pressed="true">Body</button>
+        <button type="button" data-act="pview" data-v="strength" aria-pressed="false">Strength</button>
+        <button type="button" data-act="pview" data-v="streaks" aria-pressed="false">Streaks</button>
+      </div>
+    </div>
 
-    <section class="panel" aria-labelledby="h-body">
-      <h2 id="h-body">Body</h2>
+    <section class="panel pv" data-pv="body" aria-labelledby="h-body">
+      <h2 class="pvh"><span id="h-body">Body</span><button type="button" class="infob" data-act="pvinfo" aria-pressed="false" aria-label="Show explanations"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9.5"/><path d="M12 11v6M12 7.5v.5"/></svg></button></h2>
       <div class="progress" id="body"></div>
     </section>
 
-    <section class="panel" aria-labelledby="h-targets">
-      <h2 id="h-targets">Weekly targets</h2>
+    <section class="panel pv" data-pv="strength" aria-labelledby="h-strength" hidden>
+      <h2 class="pvh"><span id="h-strength">Strength</span><button type="button" class="infob" data-act="pvinfo" aria-pressed="false" aria-label="Show explanations"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9.5"/><path d="M12 11v6M12 7.5v.5"/></svg></button></h2>
+      <div class="progress" id="strength"></div>
+    </section>
+
+    <section class="panel pv" data-pv="streaks" aria-labelledby="h-progress" hidden>
+      <h2 class="pvh"><span id="h-progress">Streaks</span><button type="button" class="infob" data-act="pvinfo" aria-pressed="false" aria-label="Show explanations"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9.5"/><path d="M12 11v6M12 7.5v.5"/></svg></button></h2>
+      <div class="progress" id="progress"></div>
+    </section>
+
+    <section class="panel pv" data-pv="streaks" aria-labelledby="h-targets" hidden>
+      <h2 class="pvh"><span id="h-targets">This week</span><button type="button" class="infob" data-act="pvinfo" aria-pressed="false" aria-label="Show explanations"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9.5"/><path d="M12 11v6M12 7.5v.5"/></svg></button></h2>
       <div class="targets" id="targets"></div>
     </section>
 
-    <section class="panel" aria-labelledby="h-progress">
-      <h2 id="h-progress">Progress</h2>
-      <div class="progress" id="progress"></div>
+    <section class="panel pv" data-pv="streaks" aria-labelledby="h-game" hidden>
+      <h2 class="pvh"><span id="h-game">Badges</span><button type="button" class="infob" data-act="pvinfo" aria-pressed="false" aria-label="Show explanations"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9.5"/><path d="M12 11v6M12 7.5v.5"/></svg></button></h2>
+      <div class="progress" id="game"></div>
     </section>
   </div>
 
@@ -1585,7 +1628,7 @@ svg.chart .wb.n.c-good { fill: #17A06A; }
   ['range', 'prev', 'next', 'thisweek', 'strip', 'targets', 'dayhead', 'daysub', 'swapbox', 'editbtn', 'list', 'editextra',
    'restore', 'addbtn', 'addform', 'f-name', 'f-day', 'f-min', 'f-detail', 'cancel', 'status', 'toast', 'progress', 'body',
    'panel-workout', 'panel-progress', 'tab-workout', 'tab-progress', 'nutrition', 'panel-nutrition', 'tab-nutrition', 'welcome', 'panel-welcome', 'tab-welcome',
-   'panel-settings', 'tab-settings', 'settings', 'headav', 'coach', 'timer', 'game', 'weekrow'].forEach(function (id) {
+   'panel-settings', 'tab-settings', 'settings', 'headav', 'coach', 'timer', 'game', 'weekrow', 'strength', 'lvstrip'].forEach(function (id) {
     el[id] = document.getElementById(id);
   });
 
@@ -2180,6 +2223,14 @@ svg.chart .wb.n.c-good { fill: #17A06A; }
   }
 
   /* ===== LIFT PROGRESS: one day at a time, a card per lift ===== */
+  var progView = 'body', bwOpen = false, bdOpen = false;
+  try { var pv0 = localStorage.getItem('jym:pview'); if (pv0 === 'body' || pv0 === 'strength' || pv0 === 'streaks') progView = pv0; } catch (e) {}
+  function applyPView() {
+    var panel = el['panel-progress'];
+    if (!panel) return;
+    Array.prototype.forEach.call(panel.querySelectorAll('section.pv'), function (sec) { sec.hidden = sec.getAttribute('data-pv') !== progView; });
+    Array.prototype.forEach.call(panel.querySelectorAll('[data-act="pview"]'), function (b) { b.setAttribute('aria-pressed', String(b.getAttribute('data-v') === progView)); });
+  }
   var liftDay = null; // 0, 2, 4 or 'x' for lifts that are no longer in the plan
   function liftGroups() {
     var g = { 0: [], 2: [], 4: [], x: [] }, seen = {};
@@ -2306,32 +2357,23 @@ svg.chart .wb.n.c-good { fill: #17A06A; }
         '" role="img" aria-label="Week of ' + lbl + ': ' + w.done + ' of ' + w.total + ' done"><i style="height:' + pct + '%"></i></span><em>' + lbl + '</em></span>';
     }
 
-    var html = '<div><div class="streak"><span class="big">' + st.cur + '</span><div><b>' + (st.cur === 1 ? 'week streak' : 'weeks streak') +
-      '</b><span class="s">' + (st.cur ? 'Every strength session done, all week' : 'Finish every Monday, Wednesday and Friday session to start one') +
-      '</span></div></div>' +
-      '<div class="weeks" aria-label="Last 8 weeks">' + weeks + '</div>' +
-      '<p class="fine">This week: ' + dc.comp + ' of ' + dc.planned + ' strength days complete. Tuesday, Thursday, Saturday and the bonus exercises are optional extras that never count against you.</p></div>';
-
+    var html = '<div class="st2"><div class="stc"><h3>Week streak</h3><div class="stn wks"><b>' + st.cur + '</b><span>' + (st.cur === 1 ? 'week' : 'weeks') + '</span></div>' +
+      '<div class="weeks wkmini" aria-label="Last 8 weeks">' + weeks + '</div></div>';
     var sk = sessionStreak(), wkMon = iso(mondayOf(new Date())), wkSun = iso(addDays(mondayOf(new Date()), 6)),
       recent = sk.list.filter(function (x) { return x.date >= wkMon && x.date <= wkSun; });
     var DN = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'], sstrip = '';
     recent.forEach(function (x) {
-      var dd = fromIso(x.date), lab = DN[x.d] + ' ' + dd.getDate(), ic = x.st === 'done' ? '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>' : x.st === 'missed' ? '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7l10 10M17 7L7 17"/></svg>' : '';
-      sstrip += '<span class="sscell"><span class="ssd ' + x.st + '" role="img" aria-label="' + lab + ': ' + (x.st === 'done' ? 'done' : x.st === 'missed' ? 'missed' : x.st === 'open' ? 'open today' : 'coming up') + '">' + ic + '</span><em>' + lab + '</em></span>';
+      var dd = fromIso(x.date), lab = DN[x.d], ic = x.st === 'done' ? '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>' : x.st === 'missed' ? '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7l10 10M17 7L7 17"/></svg>' : '';
+      sstrip += '<span class="sscell"><span class="ssd ' + x.st + '" role="img" aria-label="' + DN[x.d] + ' ' + dd.getDate() + ': ' + (x.st === 'done' ? 'done' : x.st === 'missed' ? 'missed' : x.st === 'open' ? 'open today' : 'coming up') + '">' + ic + '</span><em>' + lab + '</em></span>';
     });
-    var skTxt = sk.cur === 0 ? 'Finish your next strength session to start a streak.' : sk.cur === 1 ? 'Nice start. Keep showing up.' : 'Miss a session and it starts again.';
-    html += '<div><h3>Session streak</h3><div class="sstreak"><svg width="34" height="42" viewBox="0 0 52 64" aria-hidden="true"><path d="M26 2C28 14 46 22 46 42a20 20 0 0 1-40 0C6 32 12 26 16 20c1 6 4 9 7 9C22 18 22 10 26 2Z" fill="#EA580C"/><path d="M26 30c2 7 10 10 10 19a10 10 0 0 1-20 0c0-6 4-9 6-12 1 3 2 4 4 4-1-4-1-7 0-11Z" fill="#FDBA3B"/></svg>' +
-      '<span class="big">' + sk.cur + '</span><div><b>' + (sk.cur === 1 ? 'session in a row' : 'sessions in a row') + '</b><span class="s">Best: ' + sk.best + '. ' + skTxt + '</span></div></div>' +
-      '<div class="ssrow" aria-label="This week\'s strength sessions">' + sstrip + '</div>' +
-      '<p class="fine">The circles start fresh every Monday. Your streak keeps counting across weeks. Only Monday, Wednesday and Friday sessions count. Rest days and bonus days never add to it or break it.</p></div>';
+    html += '<div class="stc"><h3>Sessions</h3><div class="stn ss"><b>' + sk.cur + '</b><span>in a row · best ' + sk.best + '</span></div>' +
+      '<div class="ssrow" aria-label="This week\'s strength sessions">' + sstrip + '</div></div></div>' +
+      '<p class="fine">Week streak: weeks in a row with every Monday, Wednesday and Friday session done. This week: ' + dc.comp + ' of ' + dc.planned + ' strength days complete. Sessions: strength sessions in a row; miss one and it starts again. The circles start fresh every Monday. Rest days, bonus days and bonus exercises never add to a streak or break it.</p>';
 
-    html += '<div><h3>Energy</h3><div class="rows">' +
-      '<div class="r"><span>Burned this week</span><b>' + fmtKcal(b.base + b.extra) + ' kcal</b></div>' +
-      '<div class="r"><span>Extra from bonus this week</span><b>' + (b.nExtra ? '+' + fmtKcal(b.extra) + ' kcal · ' + b.nExtra + (b.nExtra === 1 ? ' bonus' : ' bonuses') : '0 kcal') + '</b></div>' +
-      '<div class="r"><span>Extra since you started</span><b>' + (allN ? '+' + fmtKcal(allExtra) + ' kcal' : '0 kcal') + '</b></div>' +
-      '</div><p class="fine">Estimates from your body weight and typical effort. Real numbers vary.</p></div>';
-
-    html += '<div><h3>Lift progress</h3>' + liftHtml() + '</div>';
+    var sh = '<div>' + liftHtml() + '</div>';
+    sh += '<div class="encard"><h3>Energy this week</h3><div class="stn"><b>' + fmtKcal(b.base + b.extra) + '</b><span>kcal burned' + (b.nExtra ? ' · +' + fmtKcal(b.extra) + ' from bonus' : '') + '</span></div>' +
+      '<p class="fine">Extra from bonus since you started: ' + (allN ? '+' + fmtKcal(allExtra) + ' kcal' : '0 kcal') + '. Estimates from your body weight and typical effort. Real numbers vary.</p></div>';
+    if (el.strength) el.strength.innerHTML = sh;
 
     el.progress.innerHTML = html;
   }
@@ -2445,11 +2487,13 @@ svg.chart .wb.n.c-good { fill: #17A06A; }
         else if (lvUp) fxLevel(x);
       }
     }
-    var html = levelCardHtml();
+    if (el.lvstrip) el.lvstrip.innerHTML = levelCardHtml();
+    applyPView();
+    var html = '';
     var LS_ = gameScale(), tn = [], lo = 1;
     LS_.cum.forEach(function (hi, i) { tn.push(cap1(TIER_NAMES[i]) + ' ' + lo + ' to ' + hi); lo = hi + 1; });
     html += '<p class="fine">Every level costs ' + LS_.xpl + ' XP. Tiers: ' + tn.join(', ') + '. To enter the next tier you need the last level of your tier and all ' + GATE_BADGES.length + ' plan badges at that tier: Sessions, Strength, Streak, Weigh-ins, Meals, Hours, Top weeks and Goal. Bonus and Stretch badges are optional extras that give XP, so bonus days get you through the levels faster. The targets are set so that following the plan for ' + LS_.W + ' weeks finishes Diamond, right when your weight goal is reached.</p>';
-    html += '<div><h3>Badges</h3><div class="bgrid">' + defs.map(function (b, i) {
+    html += '<div><div class="bgrid">' + defs.map(function (b, i) {
       var next = b.tier >= 4 ? 'Max level' : b.val + ' of ' + b.th[b.tier] + b.unit;
       var nm = b.tier ? cap1(TIER_NAMES[b.tier - 1]) : 'Locked';
       return '<button type="button" class="bcell' + (i === badgeSel ? ' sel' : '') + '" data-act="badgesel" data-i="' + i + '" aria-pressed="' + (i === badgeSel) + '" aria-label="' + esc(b.label + (b.gate ? '' : ', optional, not needed for the next tier') + ', ' + nm + ', ' + next) + '">' +
@@ -2670,11 +2714,11 @@ svg.chart .wb.n.c-good { fill: #17A06A; }
     var toGo = Math.max(0, curKg - goalKg);
     var totalLoss = Math.max(0.1, startKg - goalKg);
     var pct = Math.max(0, Math.min(100, Math.round(lost / totalLoss * 100)));
-    var html = '';
+    var html = '', P = { head: '', eq: '', form: '', chart: '', cp: '', fat: '', fatc: '', tro: '', hist: '' };
     var i;
 
     // headline
-    html += '<div><div class="bodystat"><span class="big">' + f1(curKg) + '</span><div><b>kg ' + (keys.length ? 'at last weigh-in' : 'at the start') + '</b><span class="s">' +
+    P.head += '<div><div class="bodystat"><span class="big">' + f1(curKg) + '</span><div><b>kg ' + (keys.length ? 'at last weigh-in' : 'at the start') + '</b><span class="s">' +
       (toGo > 0 ? f1(toGo) + ' kg to go to reach ' + f1(goalKg) + ' kg' : 'Goal of ' + f1(goalKg) + ' kg reached') + '</span></div></div>' +
       '<div class="gbar" role="img" aria-label="' + pct + ' percent of the way to your goal"><i style="width:' + pct + '%"></i></div>' +
       '<p class="fine">' + pct + '% of the way from your start weight of ' + f1(startKg) + ' kg. The plan starts Monday ' + dm(fromIso(START)) + '.</p></div>';
@@ -2683,7 +2727,7 @@ svg.chart .wb.n.c-good { fill: #17A06A; }
     var eq = lost > 0 ? eqText(lost) : null;
     var nextE = null;
     EQ.forEach(function (e) { if (!nextE && e.w > lost) nextE = e; });
-    html += '<div class="eqcard"><p class="fine" style="margin:0 0 4px">Since your start weight you have lost</p><div class="eq">' +
+    P.eq += '<div class="eqcard"><p class="fine" style="margin:0 0 4px">Since your start weight you have lost</p><div class="eq">' +
       (lost <= 0 ? 'nothing yet' : eq ? esc(eq) : 'less than a potato') + '</div>' +
       '<p class="fine">' + (lost > 0 ? f1(lost) + ' kg in total. ' : lost < 0 ? 'You are ' + f1(-lost) + ' kg above your start weight. Day-to-day swings of 1 kg or more are normal, so look at the trend. ' : '') +
       (nextE ? 'Next: ' + f1(nextE.w - Math.max(lost, 0)) + ' kg more makes it 1 ' + esc(nextE.one) + '.' : 'You have run out of funny comparisons. Impressive.') + '</p></div>';
@@ -2695,7 +2739,7 @@ svg.chart .wb.n.c-good { fill: #17A06A; }
       opts += '<option value="' + k + '">' + (k === iso(todayMon) ? (notStarted ? 'First week' : 'This week') : 'Week of ' + dm(wk)) + ' (' + dm(wk) + ')' + (weigh[k] ? ' (logged)' : '') + '</option>';
       wk = addDays(wk, -7);
     }
-    html += '<div><h3>Weekly weigh-in</h3><div class="bform">' +
+    P.form += '<div><h3>Weekly weigh-in</h3><div class="bform">' +
       '<label class="wide" for="bwk">Week<select id="bwk">' + opts + '</select></label>' +
       '<label for="bkg">Weight (kg)<input id="bkg" type="text" inputmode="decimal" autocomplete="off" placeholder="' + f1(curKg) + '"></label>' +
       '<label for="bfat">Body fat % (optional)<input id="bfat" type="text" inputmode="decimal" autocomplete="off" placeholder="e.g. 26"></label>' +
@@ -2712,7 +2756,7 @@ svg.chart .wb.n.c-good { fill: #17A06A; }
       'Above the curve by about ' + f1(diff) + ' kg. Scale weight wobbles, and muscle gained also counts. Watch the 3-week trend.';
     var perWk = keys.length && tNow > 0 ? (startKg - trendNow) / tNow : null;
     var vcls = !keys.length ? '' : Math.abs(diff) <= 0.7 || diff < 0 ? 'ok' : 'hi';
-    html += '<div><h3>Weight over time</h3><div class="wchips">' +
+    P.chart += '<div><h3>Weight over time</h3><div class="wchips">' +
       '<div class="wchip' + (lost > 0 ? ' good' : '') + '"><b>' + (lost > 0 ? '−' : lost < 0 ? '+' : '') + f1(Math.abs(lost)) + ' kg</b><span>since start</span></div>' +
       '<div class="wchip"><b>' + (perWk == null ? '–' : (perWk > 0 ? '−' : perWk < 0 ? '+' : '') + f1(Math.abs(perWk))) + '</b><span>kg per week</span></div>' +
       '<div class="wchip"><b>' + f1(toGo) + ' kg</b><span>to go</span></div></div>' +
@@ -2724,7 +2768,7 @@ svg.chart .wb.n.c-good { fill: #17A06A; }
     var cps = '';
     for (i = 4; i < N; i += 4) cps += '<div class="r"><span>Week ' + i + ' · ' + dm(addDays(fromIso(START), i * 7)) + '</span><b>' + f1(planKg(i, N)) + ' kg</b></div>';
     cps += '<div class="r"><span>Week ' + N + ' · ' + dm(addDays(fromIso(START), N * 7)) + '</span><b>' + f1(goalKg) + ' kg</b></div>';
-    html += '<div><h3>Plan checkpoints</h3><div class="rows">' + cps + '</div></div>';
+    P.cp += '<div><h3>Plan checkpoints</h3><div class="rows">' + cps + '</div></div>';
 
     // body fat and composition
     var latestFat = startFat, latestFatK = null;
@@ -2734,7 +2778,7 @@ svg.chart .wb.n.c-good { fill: #17A06A; }
     var fatKgNow = curKg * fatNow / 100, leanNow = curKg - fatKgNow;
     var TGT = 20;
     var fatKgT = goalKg * TGT / 100, leanT = goalKg - fatKgT;
-    html += '<div><h3>Body fat</h3><div class="macro3">' +
+    P.fat += '<div><h3>Body fat</h3><div class="macro3">' +
       '<div><b>' + f1(fatNow) + '%</b>' + (estimated ? 'estimated now' : latestFatK ? 'latest, ' + dm(fromIso(latestFatK)) : 'at start') + '</div>' +
       '<div><b>' + TGT + '%</b>target at goal</div>' +
       '<div><b>15–17%</b>athletic later</div></div>' +
@@ -2749,7 +2793,7 @@ svg.chart .wb.n.c-good { fill: #17A06A; }
     if (startFat != null && fatKeys.length) {
       var a = { kg: startKg, fat: startFat }, b = weigh[fatKeys[fatKeys.length - 1]];
       var fl = a.kg * a.fat / 100 - b.kg * b.fat / 100, ll = (b.kg * (1 - b.fat / 100)) - (a.kg * (1 - a.fat / 100));
-      html += '<div class="eqcard"><p class="fine" style="margin:0 0 4px">Fat mass change since start</p><div class="eq">' + (fl > 0 ? '−' : '+') + f1(Math.abs(fl)) + ' kg fat</div>' +
+      P.fatc += '<div class="eqcard"><p class="fine" style="margin:0 0 4px">Fat mass change since start</p><div class="eq">' + (fl > 0 ? '−' : '+') + f1(Math.abs(fl)) + ' kg fat</div>' +
         '<p class="fine">' + (fl >= 0.25 ? 'That is ' + esc(Math.floor(fl / 0.25) + (Math.floor(fl / 0.25) === 1 ? ' block' : ' blocks') + ' of butter') + '. ' : '') +
         'Lean mass ' + (ll >= 0 ? 'up ' : 'down ') + f1(Math.abs(ll)) + ' kg.</p></div>';
     }
@@ -2774,18 +2818,22 @@ svg.chart .wb.n.c-good { fill: #17A06A; }
       var ok = lost >= e.w, nx = ix === nextI;
       return '<div class="rung ' + (ok ? 'ok' : nx ? 'next' : 'lock') + '"><span>1 ' + esc(e.one) + '</span><em>' + (nx ? f1(e.w - Math.max(0, lost)) + ' kg to go' : f1(e.w) + ' kg') + '</em></div>';
     }).reverse().join('');
-    html += '<div><h3>Trophies</h3><div class="miles">' + miles.map(function (m) {
+    P.tro += '<div><h3>Trophies</h3><div class="miles">' + miles.map(function (m) {
       return '<div class="mile ' + (m.ok ? m.c : 'lock') + '">' + ti(m.k) + '<span>' + esc(m.t) + '</span><span class="sr">' + (m.ok ? 'earned' : 'locked') + '</span></div>';
     }).join('') + '</div>' +
       '<p class="fine" style="margin:14px 0 6px;font-weight:600">' + (lost > 0 ? 'You have lost ' + f1(lost) + ' kg, about the weight of…' : 'Every kilo you lose climbs this ladder.') + '</p>' +
       '<div class="wladder">' + rungs + '</div></div>';
 
     // history
-    html += '<div><h3>History</h3><div class="rows">' + keys.slice(-6).reverse().map(function (k) {
+    P.hist += '<div><h3>History</h3><div class="rows">' + keys.slice(-6).reverse().map(function (k) {
       var e = weigh[k];
       return '<div class="r"><span>Week of ' + dm(fromIso(k)) + '</span><b>' + f1(e.kg) + ' kg' + (e.fat != null ? ' · ' + f1(e.fat) + '%' : '') + '</b></div>';
     }).join('') + '<div class="r"><span>Start</span><b>' + f1(startKg) + ' kg' + (startFat != null ? ' · ' + f1(startFat) + '%' : '') + '</b></div></div></div>';
 
+    // Main view: weight, chart, weigh-in button, trophies. The rest sits behind Details.
+    P.form = P.form.replace('<button type="button" class="primary wide" data-act="weigh">Save weigh-in</button>', '<button type="button" class="primary" data-act="weigh">Save weigh-in</button><button type="button" class="ghost" data-act="bwopen">Cancel</button>');
+    html = P.head + P.chart + (bwOpen ? P.form : '<div><button type="button" class="primary pvbtn" data-act="bwopen">Log weigh-in</button></div>') + P.tro +
+      '<details class="pvdet"' + (bdOpen ? ' open' : '') + '><summary>Details: plan, body fat, history</summary><div class="pvdetb">' + P.eq + P.cp + P.fat + P.fatc + P.hist + '</div></details>';
     el.body.innerHTML = html;
     var sel = document.getElementById('bwk');
     if (sel) sel.value = keep.bwk && sel.querySelector('option[value="' + keep.bwk + '"]') ? keep.bwk : iso(todayMon);
@@ -2816,6 +2864,7 @@ svg.chart .wb.n.c-good { fill: #17A06A; }
     }
     var x = document.getElementById('bkg'); if (x) x.value = '';
     x = document.getElementById('bfat'); if (x) x.value = '';
+    bwOpen = false;
     save(); render(); toast(msg);
   }
 
@@ -4042,6 +4091,17 @@ svg.chart .wb.n.c-good { fill: #17A06A; }
     }
     else if (act === 'months') { goalMonths = +t.getAttribute('data-id') || 4; save(); render(); }
     else if (act === 'badgesel') { badgeSel = +t.getAttribute('data-i') || 0; renderGame(); }
+    else if (act === 'pview') {
+      progView = t.getAttribute('data-v') || 'body';
+      try { localStorage.setItem('jym:pview', progView); } catch (e2) {}
+      applyPView();
+      var pt = el['panel-progress'].querySelector('.pvtop'); if (pt && pt.getBoundingClientRect().top < 0 && pt.scrollIntoView) pt.scrollIntoView({ block: 'start' });
+    }
+    else if (act === 'pvinfo') {
+      var sec = t.closest('section.pv'), on = !sec.classList.contains('notes');
+      sec.classList.toggle('notes', on); t.setAttribute('aria-pressed', String(on));
+    }
+    else if (act === 'bwopen') { bwOpen = !bwOpen; renderBody(); if (bwOpen) { var bk = document.getElementById('bkg'); if (bk) bk.focus(); } }
     else if (act === 'liftday') { var ld = t.getAttribute('data-d'); liftDay = ld === 'x' ? 'x' : +ld; chartLift = null; renderProgress(); }
     else if (act === 'liftopen') {
       var ln = t.getAttribute('data-n');
@@ -4095,6 +4155,7 @@ svg.chart .wb.n.c-good { fill: #17A06A; }
     }
   });
 
+  document.addEventListener('toggle', function (e) { if (e.target && e.target.classList && e.target.classList.contains('pvdet')) bdOpen = e.target.open; }, true);
   document.addEventListener('input', function (e) {
     var t = e.target;
     if (!t || !t.getAttribute) return;
