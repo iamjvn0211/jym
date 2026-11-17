@@ -743,6 +743,40 @@ svg.chart .wb.n.c-good { fill: #17A06A; }
 }
 :root[data-theme="dark"] .mile.m-orange, :root[data-theme="dark"] .rung.next em { color: #F5B94A; }
 :root[data-theme="dark"] .mile.m-green, :root[data-theme="dark"] .wchip.good b, :root[data-theme="dark"] .wchart .goall { color: #4FD19C; fill: #4FD19C; }
+.lhero { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 14px; background: linear-gradient(135deg, #2457F5, #6B4DF0); color: #fff; margin: 0 0 12px; }
+.lhero b { font-size: 30px; font-weight: 700; line-height: 1; white-space: nowrap; }
+.lhero span { font-size: 13px; line-height: 1.35; }
+.lgrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.lcard { display: flex; flex-direction: column; gap: 3px; min-width: 0; padding: 10px 10px 8px; text-align: left; font: inherit; color: inherit; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; cursor: pointer; }
+.lcard:focus-visible { outline: 3px solid var(--acc); outline-offset: 2px; }
+.lcard.open { grid-column: 1 / -1; border: 2px solid var(--acc); }
+.lcard .lnm { font-size: 12px; font-weight: 600; color: var(--muted); line-height: 1.25; min-height: 30px; overflow-wrap: anywhere; }
+.lcard.open .lnm { min-height: 0; font-size: 13px; color: var(--ink); }
+.lcard .lv { display: flex; align-items: baseline; gap: 5px; }
+.lcard .lv b { font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.lcard .lv i { font-style: normal; font-size: 11px; color: var(--muted); }
+.lup { margin-left: auto; font-size: 11px; font-weight: 700; color: #0F8A5A; background: rgba(23, 160, 106, .13); border-radius: 999px; padding: 2px 7px; white-space: nowrap; }
+.lup.flat { color: var(--muted); background: var(--line); font-weight: 600; }
+.lup.down { color: #B45309; background: rgba(224, 138, 0, .14); }
+.lnx { display: flex; justify-content: space-between; gap: 6px; font-size: 11px; color: var(--muted); }
+.lnx b { color: var(--acc); }
+.lnx.big { font-size: 12px; flex-wrap: wrap; }
+.lcard.empty .lv b { color: var(--muted); }
+.spark { display: block; width: 100%; height: auto; }
+.spark .kf { fill: var(--acc); opacity: .12; }
+.spark .kl { fill: none; stroke: var(--acc); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.spark.big .kl { stroke-width: 3; }
+.spark .kn { stroke: var(--acc); stroke-width: 1.6; stroke-dasharray: 3 3; }
+.spark .knd { fill: var(--bg); stroke: var(--acc); stroke-width: 1.8; }
+.spark .kp { fill: var(--acc); stroke: var(--surface); stroke-width: 1.5; }
+.spark .kg { stroke: var(--line); }
+.spark text { font-size: 10.5px; fill: var(--muted); }
+.spark .knl { fill: var(--acc); font-weight: 600; }
+.flegend .ltr2 { background: var(--acc); height: 3px; }
+.flegend .lnx2 { width: 10px; height: 10px; border-radius: 50%; background: none; border: 1.8px dashed var(--acc); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .lup { color: #4FD19C; } :root:not([data-theme="light"]) .lup.down { color: #F5B94A; } }
+:root[data-theme="dark"] .lup { color: #4FD19C; } :root[data-theme="dark"] .lup.down { color: #F5B94A; }
+.lup.flat, :root .lup.flat { color: var(--muted) !important; }
 .lanehead { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin: 14px 0 0; font-size: 14px; }
 .lanehead span { font-size: 12px; color: var(--muted); }
 .fpick { margin-top: 8px; padding: 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
@@ -2145,6 +2179,105 @@ svg.chart .wb.n.c-good { fill: #17A06A; }
     return chips + svg + '<p class="line">' + esc(summary) + '</p>' + next;
   }
 
+  /* ===== LIFT PROGRESS: one day at a time, a card per lift ===== */
+  var liftDay = null; // 0, 2, 4 or 'x' for lifts that are no longer in the plan
+  function liftGroups() {
+    var g = { 0: [], 2: [], 4: [], x: [] }, seen = {};
+    plan.forEach(function (a) {
+      if (a.cat !== 'str' || isBonus(a) || NOWEIGHT[a.name] || seen[a.name]) return;
+      seen[a.name] = 1;
+      (g[a.day] || g.x).push(a.name);
+    });
+    Object.keys(logs).sort().forEach(function (k) {
+      Object.keys(logs[k] || {}).forEach(function (n) { if (!seen[n] && +logs[k][n] > 0) { seen[n] = 1; g.x.push(n); } });
+    });
+    return g;
+  }
+  function liftSeries(name) {
+    var out = [];
+    Object.keys(logs).sort().forEach(function (k) { var v = +((logs[k] || {})[name]); if (v > 0) out.push({ k: k, v: v }); });
+    return out;
+  }
+  function liftNext(name, ser) {
+    if (!SPEC[name]) return null;
+    var cw = iso(todayMon), loggedNow = ser.length && ser[ser.length - 1].k === cw;
+    return loggedNow ? suggest(name, iso(addDays(todayMon, 7))) : recFor(name, cw);
+  }
+  function sparkSvg(ser, nx, big, name) {
+    var pts = ser.slice(-8), vals = pts.map(function (p) { return p.v; }).concat(nx ? [nx] : []);
+    var W = big ? 330 : 140, H = big ? 150 : 36, L = big ? 30 : 3, R = big ? 10 : 6, T = big ? 12 : 4, B = big ? 26 : 4;
+    var n = pts.length + (nx ? 1 : 0), lo = Math.min.apply(null, vals), hi = Math.max.apply(null, vals);
+    if (hi === lo) { lo -= big ? 4 : 2; hi += big ? 4 : 2; } else { var pd = (hi - lo) * (big ? 0.25 : 0.2); lo -= pd; hi += pd; }
+    function X(i) { return L + (n > 1 ? i * (W - L - R) / (n - 1) : (W - L - R) / 2); }
+    function Y(v) { return T + (1 - (v - lo) / (hi - lo)) * (H - T - B); }
+    var svg = '<svg class="spark' + (big ? ' big' : '') + '" viewBox="0 0 ' + W + ' ' + H + '"' + (big ? ' role="img" aria-label="' + esc(name) + ' by week"' : ' aria-hidden="true"') + '>';
+    if (big) {
+      var gmin = Math.min.apply(null, vals), gmax = Math.max.apply(null, vals);
+      (gmin === gmax ? [gmin] : [gmax, gmin]).forEach(function (g) {
+        svg += '<line class="kg" x1="' + L + '" x2="' + (W - R) + '" y1="' + Y(g).toFixed(1) + '" y2="' + Y(g).toFixed(1) + '"/><text x="' + (L - 6) + '" y="' + (Y(g) + 3.5).toFixed(1) + '" text-anchor="end">' + fmtN(g) + '</text>';
+      });
+    }
+    var line = pts.map(function (p, i) { return X(i).toFixed(1) + ',' + Y(p.v).toFixed(1); });
+    if (pts.length > 1) {
+      svg += '<polygon class="kf" points="' + line.join(' ') + ' ' + X(pts.length - 1).toFixed(1) + ',' + (H - B) + ' ' + X(0).toFixed(1) + ',' + (H - B) + '"/>';
+      svg += '<polyline class="kl" points="' + line.join(' ') + '"/>';
+    }
+    var li = pts.length - 1;
+    if (nx && li >= 0) svg += '<line class="kn" x1="' + X(li).toFixed(1) + '" y1="' + Y(pts[li].v).toFixed(1) + '" x2="' + X(li + 1).toFixed(1) + '" y2="' + Y(nx).toFixed(1) + '"/><circle class="knd" cx="' + X(li + 1).toFixed(1) + '" cy="' + Y(nx).toFixed(1) + '" r="' + (big ? 5 : 3) + '"/>';
+    if (big) {
+      pts.forEach(function (p, i) { svg += '<circle class="kp" cx="' + X(i).toFixed(1) + '" cy="' + Y(p.v).toFixed(1) + '" r="4"/>'; });
+      pts.forEach(function (p, i) { svg += '<text x="' + X(i).toFixed(1) + '" y="' + (H - 7) + '" text-anchor="middle">' + dm(fromIso(p.k)) + '</text>'; });
+      if (nx) svg += '<text class="knl" x="' + X(li + 1).toFixed(1) + '" y="' + (H - 7) + '" text-anchor="middle">next</text>';
+    } else if (li >= 0) svg += '<circle class="kp" cx="' + X(li).toFixed(1) + '" cy="' + Y(pts[li].v).toFixed(1) + '" r="3"/>';
+    return svg + '</svg>';
+  }
+  function liftHtml() {
+    var g = liftGroups(), days = [[0, 'Mon'], [2, 'Wed'], [4, 'Fri']];
+    if (g.x.length) days.push(['x', 'Other']);
+    var DL = { 0: 'Monday', 2: 'Wednesday', 4: 'Friday', x: 'No longer in your plan' };
+    if (liftDay == null || !g[liftDay] || !g[liftDay].length) {
+      var pd = planDay(iso(todayMon), todayIdx);
+      liftDay = isTrain(pd) && g[pd].length ? pd : 0;
+    }
+    // Summary: average gain over lifts with two or more logs, and the best mover.
+    var best = null, pcts = [];
+    Object.keys(g).forEach(function (k) {
+      g[k].forEach(function (n) {
+        var s = liftSeries(n);
+        if (s.length < 2) return;
+        var pc = s[s.length - 1].v / s[0].v - 1;
+        pcts.push(pc);
+        if (!best || pc > best.pc) best = { n: n, pc: pc, a: s[0].v, b: s[s.length - 1].v, w: Math.round((fromIso(s[s.length - 1].k) - fromIso(s[0].k)) / 604800000) };
+      });
+    });
+    var h = '';
+    if (pcts.length) {
+      var avg = Math.round(pcts.reduce(function (x, y) { return x + y; }, 0) / pcts.length * 100);
+      h += '<div class="lhero"><b>' + (avg > 0 ? '+' : avg < 0 ? '−' : '') + Math.abs(avg) + '%</b><span>' + (avg >= 0 ? 'stronger' : 'change') + ' on average across ' + pcts.length + (pcts.length === 1 ? ' lift' : ' lifts') + ' since your first logs.' +
+        (best && best.pc > 0 ? ' Best mover: ' + esc(best.n) + ', ' + fmtN(best.a) + ' to ' + fmtN(best.b) + ' kg (+' + Math.round(best.pc * 100) + '%).' : '') + '</span></div>';
+    } else {
+      h += '<p class="line">Log the weight you lift on the Workout tab. After two weeks of logs your gains show up here.</p>';
+    }
+    h += '<div class="seg lseg" role="group" aria-label="Session day" style="grid-template-columns:repeat(' + days.length + ',minmax(0,1fr))">' + days.map(function (d) {
+      return '<button type="button" data-act="liftday" data-d="' + d[0] + '" aria-pressed="' + (String(liftDay) === String(d[0])) + '">' + d[1] + '</button>';
+    }).join('') + '</div>';
+    var names = g[liftDay] || [];
+    h += '<p class="fine" style="margin:8px 0 6px">' + DL[liftDay] + ' · ' + names.length + (names.length === 1 ? ' lift' : ' lifts') + '. Tap a card for its chart.</p>';
+    if (chartLift && names.indexOf(chartLift) < 0) chartLift = null;
+    h += '<div class="lgrid">' + names.map(function (n) {
+      var ser = liftSeries(n), nx = liftNext(n, ser), open = n === chartLift, last = ser.length ? ser[ser.length - 1].v : null;
+      var d = ser.length > 1 ? last - ser[0].v : null, unit = unitFor(n).replace('kg', '').trim();
+      var chip = d == null ? '<span class="lup flat">' + (ser.length ? 'first log' : 'not logged') + '</span>' : d > 0 ? '<span class="lup">+' + fmtN(d) + ' kg</span>' : d < 0 ? '<span class="lup down">−' + fmtN(-d) + ' kg</span>' : '<span class="lup flat">same</span>';
+      var body = !ser.length ? '<span class="lnx"><span>' + (nx ? 'start with' : 'log it on the Workout tab') + '</span>' + (nx ? '<b>' + fmtN(nx) + ' kg</b>' : '') + '</span>' :
+        open ? sparkSvg(ser, nx, true, n) + '<span class="lnx big"><span>First log ' + fmtN(ser[0].v) + ' kg · ' + ser.length + (ser.length === 1 ? ' week' : ' weeks') + ' logged</span>' + (nx ? '<span>' + (ser[ser.length - 1].k === iso(todayMon) ? 'Next week' : 'This week') + ' <b>' + fmtN(nx) + ' kg</b></span>' : '') + '</span>' :
+        sparkSvg(ser, nx, false, n) + '<span class="lnx"><span>next</span>' + (nx ? '<b>' + fmtN(nx) + ' kg</b>' : '<b>–</b>') + '</span>';
+      return '<button type="button" class="lcard' + (open ? ' open' : '') + (ser.length ? '' : ' empty') + '" data-act="liftopen" data-n="' + esc(n) + '" aria-expanded="' + open + '">' +
+        '<span class="lnm">' + esc(n) + '</span>' + (last != null ? '<span class="lv"><b>' + fmtN(last) + '</b><i>kg' + (unit ? ' ' + unit : '') + '</i>' + chip + '</span>' : '<span class="lv"><span class="lup flat" style="margin-left:0">Not logged yet</span></span>') + body + '</button>';
+    }).join('') + '</div>';
+    h += '<p class="flegend" style="margin-top:10px"><span><i class="ltr2"></i>Your logged weights</span><span><i class="lnx2"></i>Suggested next</span></p>';
+    return h;
+  }
+
   function renderProgress() {
     var cur = iso(todayMon);
     var st = streaks(), dc = daysComplete(cur), b = burn(cur), ss = strengthStats();
@@ -2187,23 +2320,7 @@ svg.chart .wb.n.c-good { fill: #17A06A; }
       '<div class="r"><span>Extra since you started</span><b>' + (allN ? '+' + fmtKcal(allExtra) + ' kcal' : '0 kcal') + '</b></div>' +
       '</div><p class="fine">Estimates from your body weight and typical effort. Real numbers vary.</p></div>';
 
-    var line;
-    if (ss.avg === null) line = ss.rows.length ? 'Log the same lifts next week and your gains show up here.' : 'Log the weight you lift and your gains show up here.';
-    else {
-      var p = Math.round(ss.avg * 100);
-      line = p > 0 ? 'Strength is up ' + p + '% across ' + ss.lifts + (ss.lifts === 1 ? ' lift' : ' lifts') + ' since you started.'
-        : p < 0 ? 'Your latest weights are a little below your first logs.' : 'Strength is steady since you started.';
-    }
-    html += '<div><h3>Weight over time</h3>' + chartHtml() + '</div>';
-    html += '<div><h3>Strength</h3><p class="line">' + esc(line) + '</p>';
-    if (ss.rows.length) {
-      html += '<ul class="lifts">' + ss.rows.slice(0, 6).map(function (r) {
-        var diff = r.last - r.first;
-        var txt = r.n < 2 ? 'first log' : diff > 0 ? '+' + fmtN(diff) + ' kg' : diff < 0 ? '−' + fmtN(-diff) + ' kg' : 'same';
-        return '<li><span class="ln">' + esc(r.name) + '</span><span class="lw">' + fmtN(r.last) + ' kg</span><span class="ld' + (diff > 0 && r.n > 1 ? ' up' : '') + '">' + txt + '</span></li>';
-      }).join('') + '</ul>';
-    }
-    html += '</div>';
+    html += '<div><h3>Lift progress</h3>' + liftHtml() + '</div>';
 
     el.progress.innerHTML = html;
   }
@@ -3914,6 +4031,14 @@ svg.chart .wb.n.c-good { fill: #17A06A; }
     }
     else if (act === 'months') { goalMonths = +t.getAttribute('data-id') || 4; save(); render(); }
     else if (act === 'badgesel') { badgeSel = +t.getAttribute('data-i') || 0; renderGame(); }
+    else if (act === 'liftday') { var ld = t.getAttribute('data-d'); liftDay = ld === 'x' ? 'x' : +ld; chartLift = null; renderProgress(); }
+    else if (act === 'liftopen') {
+      var ln = t.getAttribute('data-n');
+      chartLift = chartLift === ln ? null : ln;
+      renderProgress();
+      var oc = el.progress.querySelector('.lcard[data-n="' + (window.CSS && CSS.escape ? CSS.escape(ln) : ln) + '"]');
+      if (oc) { oc.focus(); if (chartLift && oc.scrollIntoView) oc.scrollIntoView({ block: 'nearest' }); }
+    }
     else if (act === 'lift') {
       chartLift = liftNames()[+t.getAttribute('data-i')] || chartLift;
       renderProgress();
