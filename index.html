@@ -689,6 +689,60 @@ svg.chart .wb.n.c-mid { fill: #E08A00; }
 svg.chart .wb.n.c-good { fill: #17A06A; }
 .legend .ln2.ln3 { background: linear-gradient(90deg, #17A06A 0 34%, #E08A00 34% 67%, #D9432E 67%); }
 .nbar.nb-good i { background: #17A06A; }
+.wchips { display: flex; gap: 6px; margin: 0 0 10px; }
+.wchip { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; padding: 8px 10px; border-radius: 12px; background: var(--surface); border: 1px solid var(--line); }
+.wchip b { font-size: 18px; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.wchip span { font-size: 11px; color: var(--muted); }
+.wchip.good { background: rgba(23, 160, 106, .12); border-color: rgba(23, 160, 106, .3); }
+.wchip.good b { color: #0F8A5A; }
+.wchart .ln { stroke: var(--acc); stroke-width: 3; }
+.wchart .tfill { fill: var(--acc); opacity: .12; }
+.wchart .band { fill: var(--acc); opacity: .1; }
+.wchart .tg { stroke: var(--acc); opacity: .55; stroke-width: 1.5; }
+.wchart .today { stroke: var(--ink); stroke-dasharray: 2 3; opacity: .35; }
+.wchart .todayl { font-weight: 600; fill: var(--ink); }
+.wchart .flag { fill: #17A06A; stroke: #17A06A; stroke-width: 2; stroke-linejoin: round; }
+.wchart .flagd { fill: #17A06A; }
+.wchart .goall { font-weight: 700; fill: #0F8A5A; }
+.wchart .bpt { stroke: var(--bg); stroke-width: 2; }
+.wchart .bpt.ok { fill: #17A06A; }
+.wchart .bpt.hi { fill: #E08A00; }
+.wverd { display: flex; gap: 8px; align-items: baseline; }
+.vdot { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--muted); transform: translateY(-1px); }
+.vdot.ok { background: #17A06A; } .vdot.hi { background: #E08A00; }
+.wleg .ltr { background: var(--acc) !important; }
+.wleg .lpl { background: var(--acc) !important; opacity: .4; }
+.wleg .lok, .wleg .lhi { width: 8px !important; height: 8px !important; border-radius: 50% !important; background: #17A06A !important; }
+.wleg .lhi { background: #E08A00 !important; }
+.miles { display: flex; gap: 6px; }
+.mile { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 6px; border-radius: 12px; text-align: center; font-size: 12px; font-weight: 600; line-height: 1.25; }
+.mile svg { width: 22px; height: 22px; }
+.mile.m-blue { background: rgba(36, 87, 245, .1); color: var(--acc); }
+.mile.m-orange { background: rgba(224, 138, 0, .14); color: #B45309; }
+.mile.m-green { background: rgba(23, 160, 106, .13); color: #0F8A5A; }
+.mile.lock { background: var(--surface); border: 1px solid var(--line); color: var(--muted); }
+.mile.lock svg { opacity: .5; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.wladder { padding-left: 28px; }
+.rung { position: relative; display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 8px 0; font-size: 14px; }
+.rung::before { content: ""; position: absolute; left: -24px; top: 50%; width: 12px; height: 12px; margin-top: -9px; border-radius: 50%; background: var(--bg); border: 3px solid var(--line); z-index: 1; }
+.rung::after { content: ""; position: absolute; left: -17px; top: 50%; height: 100%; width: 4px; background: var(--line); }
+.rung:last-child::after { display: none; }
+.rung.ok { font-weight: 600; }
+.rung.ok::before { background: #17A06A; border-color: #17A06A; }
+.rung.ok::after { background: #17A06A; }
+.rung.lock { color: var(--muted); }
+.rung em { font-style: normal; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.rung.next { padding: 9px 10px; margin: 2px 0; border-radius: 12px; background: rgba(224, 138, 0, .13); }
+.rung.next::before { left: -24px; border-color: #E08A00; }
+.rung.next::after { left: -17px; }
+.rung.next em { color: #B45309; font-weight: 700; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .mile.m-orange, :root:not([data-theme="light"]) .rung.next em { color: #F5B94A; }
+  :root:not([data-theme="light"]) .mile.m-green, :root:not([data-theme="light"]) .wchip.good b, :root:not([data-theme="light"]) .wchart .goall { color: #4FD19C; fill: #4FD19C; }
+}
+:root[data-theme="dark"] .mile.m-orange, :root[data-theme="dark"] .rung.next em { color: #F5B94A; }
+:root[data-theme="dark"] .mile.m-green, :root[data-theme="dark"] .wchip.good b, :root[data-theme="dark"] .wchart .goall { color: #4FD19C; fill: #4FD19C; }
 .lanehead { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin: 14px 0 0; font-size: 14px; }
 .lanehead span { font-size: 12px; color: var(--muted); }
 .fpick { margin-top: 8px; padding: 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
@@ -2426,18 +2480,20 @@ svg.chart .wb.n.c-good { fill: #17A06A; }
   }
 
   function bodyChart(keys, N) {
-    var W = 320, H = 200, L = 38, R = 12, T = 14, B = 28, pw = W - L - R, ph = H - T - B, t, BAND = 0.7;
+    var W = 340, H = 210, L = 34, R = 28, T = 20, B = 26, pw = W - L - R, ph = H - T - B, t, BAND = 0.7;
     var vals = keys.map(function (k) { return weigh[k].kg; });
     var all = vals.concat([startKg, goalKg, startKg + BAND, goalKg - BAND]);
     var lo = Math.min.apply(null, all), hi = Math.max.apply(null, all), pd = Math.max((hi - lo) * 0.08, 0.3);
     lo -= pd; hi += pd;
     function X(w) { return L + Math.max(0, Math.min(N, w)) * pw / N; }
     function Y(v) { return T + (1 - (v - lo) / (hi - lo)) * ph; }
-    var svg = '<svg class="chart" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Body weight against the planned curve">';
-    [startKg, goalKg].forEach(function (v) {
-      svg += '<line class="grid" x1="' + L + '" x2="' + (W - R) + '" y1="' + Y(v).toFixed(1) + '" y2="' + Y(v).toFixed(1) + '"/>' +
-        '<text x="' + (L - 6) + '" y="' + (Y(v) + 3).toFixed(1) + '" text-anchor="end">' + f1(v) + '</text>';
-    });
+    var svg = '<svg class="chart wchart" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Body weight against the planned curve">';
+    // Grid every 1, 2 or 5 kg, whichever gives three to five lines.
+    var span = hi - lo, step = span / 4 <= 1 ? 1 : span / 4 <= 2 ? 2 : 5;
+    for (var g = Math.ceil(lo / step) * step; g <= hi; g += step) {
+      svg += '<line class="grid" x1="' + L + '" x2="' + (W - R) + '" y1="' + Y(g).toFixed(1) + '" y2="' + Y(g).toFixed(1) + '"/>' +
+        '<text x="' + (L - 6) + '" y="' + (Y(g) + 3).toFixed(1) + '" text-anchor="end">' + g + '</text>';
+    }
     var up = [], dn = [], mid = [];
     for (t = 0; t <= N; t++) {
       var pv = planKg(t, N);
@@ -2447,13 +2503,28 @@ svg.chart .wb.n.c-good { fill: #17A06A; }
     }
     svg += '<polygon class="band" points="' + up.concat(dn).join(' ') + '"/>';
     svg += '<polyline class="tg" fill="none" points="' + mid.join(' ') + '"/>';
-    svg += '<circle class="gd" cx="' + X(N).toFixed(1) + '" cy="' + Y(goalKg).toFixed(1) + '" r="5"/>';
     var tp = trendPts(keys);
-    if (tp.length > 1) svg += '<polyline class="ln" fill="none" points="' + tp.map(function (p) { return X(p.t).toFixed(1) + ',' + Y(p.v).toFixed(1); }).join(' ') + '"/>';
+    if (tp.length > 1) {
+      var pts = tp.map(function (p) { return X(p.t).toFixed(1) + ',' + Y(p.v).toFixed(1); });
+      svg += '<polygon class="tfill" points="' + pts.join(' ') + ' ' + X(tp[tp.length - 1].t).toFixed(1) + ',' + (T + ph) + ' ' + X(tp[0].t).toFixed(1) + ',' + (T + ph) + '"/>';
+      svg += '<polyline class="ln" fill="none" points="' + pts.join(' ') + '"/>';
+    }
+    // Today
+    var tn = Math.max(0, Math.min(N, (todayMon - fromIso(START)) / 604800000 + todayIdx / 7));
+    if (!notStarted) svg += '<line class="today" x1="' + X(tn).toFixed(1) + '" x2="' + X(tn).toFixed(1) + '" y1="' + T + '" y2="' + (T + ph) + '"/>' +
+      '<text class="todayl" x="' + X(tn).toFixed(1) + '" y="' + (T - 6) + '" text-anchor="' + (tn > N - 1.5 ? 'end' : tn < 1.5 ? 'start' : 'middle') + '">today</text>';
+    // Goal flag
+    var gx = X(N), gy = Y(goalKg);
+    svg += '<path class="flag" d="M' + gx.toFixed(1) + ' ' + gy.toFixed(1) + 'v-20l11 4.5-11 4.5"/><circle class="flagd" cx="' + gx.toFixed(1) + '" cy="' + gy.toFixed(1) + '" r="3.5"/>' +
+      '<text class="goall" x="' + gx.toFixed(1) + '" y="' + (gy + 15).toFixed(1) + '" text-anchor="middle">' + f1(goalKg) + '</text>';
     svg += '<circle class="gp" cx="' + X(0).toFixed(1) + '" cy="' + Y(startKg).toFixed(1) + '" r="4.5"/>';
-    keys.forEach(function (k) { svg += '<circle class="bpt" cx="' + X(weeksSince(k)).toFixed(1) + '" cy="' + Y(weigh[k].kg).toFixed(1) + '" r="3.5"/>'; });
-    svg += '<text x="' + L + '" y="' + (H - 10) + '" text-anchor="start">' + dm(fromIso(START)) + ' start</text>';
-    svg += '<text x="' + (W - R) + '" y="' + (H - 10) + '" text-anchor="end">' + dm(addDays(fromIso(START), N * 7)) + ' goal</text>';
+    // Weigh-ins: green inside the plan range or below it, orange above it.
+    keys.forEach(function (k) {
+      var w = weeksSince(k), above = weigh[k].kg > planKg(w, N) + BAND;
+      svg += '<circle class="bpt ' + (above ? 'hi' : 'ok') + '" cx="' + X(w).toFixed(1) + '" cy="' + Y(weigh[k].kg).toFixed(1) + '" r="4.5"/>';
+    });
+    svg += '<text x="' + L + '" y="' + (H - 6) + '" text-anchor="start">' + dm(fromIso(START)) + '</text>';
+    svg += '<text x="' + (W - R) + '" y="' + (H - 6) + '" text-anchor="end">' + dm(addDays(fromIso(START), N * 7)) + '</text>';
     return svg + '</svg>';
   }
 
@@ -2511,9 +2582,15 @@ svg.chart .wb.n.c-good { fill: #17A06A; }
       Math.abs(diff) <= 0.7 ? 'On track: your trend is inside the shaded plan range.' :
       diff < 0 ? 'Ahead of the plan: your trend is ' + f1(-diff) + ' kg below the curve.' :
       'Above the curve by about ' + f1(diff) + ' kg. Scale weight wobbles, and muscle gained also counts. Watch the 3-week trend.';
-    html += '<div><h3>Weight over time</h3>' + bodyChart(keys, N) +
-      '<p class="line">' + esc(verdict) + '</p>' +
-      '<div class="legend"><span><i class="lp"></i>Dots: weekly weigh-ins. Hollow dot: start weight.</span><span><i class="ls"></i>Solid line: your smoothed trend.</span><span><i class="ld2"></i>Dashed line and shading: planned curve with a normal wobble range of 0.7 kg.</span></div></div>';
+    var perWk = keys.length && tNow > 0 ? (startKg - trendNow) / tNow : null;
+    var vcls = !keys.length ? '' : Math.abs(diff) <= 0.7 || diff < 0 ? 'ok' : 'hi';
+    html += '<div><h3>Weight over time</h3><div class="wchips">' +
+      '<div class="wchip' + (lost > 0 ? ' good' : '') + '"><b>' + (lost > 0 ? '−' : lost < 0 ? '+' : '') + f1(Math.abs(lost)) + ' kg</b><span>since start</span></div>' +
+      '<div class="wchip"><b>' + (perWk == null ? '–' : (perWk > 0 ? '−' : perWk < 0 ? '+' : '') + f1(Math.abs(perWk))) + '</b><span>kg per week</span></div>' +
+      '<div class="wchip"><b>' + f1(toGo) + ' kg</b><span>to go</span></div></div>' +
+      bodyChart(keys, N) +
+      '<p class="line wverd"><span class="vdot ' + vcls + '"></span>' + esc(verdict) + '</p>' +
+      '<p class="flegend wleg"><span><i class="ltr"></i>Your trend</span><span><i class="lpl"></i>Plan ±0.7 kg</span><span><i class="lok"></i>On plan</span><span><i class="lhi"></i>Above plan</span></p></div>';
 
     // checkpoints
     var cps = '';
@@ -2549,15 +2626,31 @@ svg.chart .wb.n.c-good { fill: #17A06A; }
         'Lean mass ' + (ll >= 0 ? 'up ' : 'down ') + f1(Math.abs(ll)) + ' kg.</p></div>';
     }
 
-    // streak + trophies
+    // streak + trophies: three milestones, then the comparisons as a ladder
     var ws = weighStreak();
-    var tro = [
-      { t: 'First weekly weigh-in', ok: keys.length >= 1 },
-      { t: '3 weigh-ins in a row', ok: ws >= 3 },
-      { t: 'Goal reached', ok: keys.length > 0 && curKg <= goalKg }
-    ].concat(EQ.map(function (e) { return { t: 'Lost 1 ' + e.one, ok: lost >= e.w }; }));
-    html += '<div><h3>Trophies</h3><p class="line">' + ws + (ws === 1 ? ' week' : ' weeks') + ' of weigh-ins in a row.</p><div class="badges">' +
-      tro.map(function (x) { return '<span class="badge' + (x.ok ? ' on' : '') + '">' + esc(x.t) + (x.ok ? '' : ' (locked)') + '</span>'; }).join('') + '</div></div>';
+    var TI = {
+      scale: '<rect x="5" y="7" width="22" height="20" rx="5" fill="none" stroke="currentColor" stroke-width="2.4"/><path d="M11 13a5 5 0 0 1 10 0" fill="none" stroke="currentColor" stroke-width="2.4"/><path d="M16 13l2-3" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>',
+      flame: '<path d="M16 4c1 6 8 9 8 16a8 8 0 0 1-16 0c0-4 3-6 4-9 1 2 2 3 3 3-1-4 0-7 1-10z" fill="currentColor"/>',
+      flag: '<path d="M9 28V5" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/><path d="M9 6h15l-3.5 5 3.5 5H9z" fill="currentColor"/>'
+    };
+    function ti(k) { return '<svg viewBox="0 0 32 32" aria-hidden="true">' + TI[k] + '</svg>'; }
+    var reached = keys.length > 0 && curKg <= goalKg;
+    var miles = [
+      { k: 'scale', c: 'm-blue', ok: keys.length >= 1, t: 'First weigh-in' },
+      { k: 'flame', c: 'm-orange', ok: ws >= 3, t: ws >= 3 ? ws + ' weeks in a row' : ws + (ws === 1 ? ' week' : ' weeks') + ' in a row, 3 unlocks' },
+      { k: 'flag', c: 'm-green', ok: reached, t: 'Goal ' + f1(goalKg) + ' kg' }
+    ];
+    var nextI = -1;
+    EQ.forEach(function (e, ix) { if (nextI < 0 && lost < e.w) nextI = ix; });
+    var rungs = EQ.map(function (e, ix) {
+      var ok = lost >= e.w, nx = ix === nextI;
+      return '<div class="rung ' + (ok ? 'ok' : nx ? 'next' : 'lock') + '"><span>1 ' + esc(e.one) + '</span><em>' + (nx ? f1(e.w - Math.max(0, lost)) + ' kg to go' : f1(e.w) + ' kg') + '</em></div>';
+    }).reverse().join('');
+    html += '<div><h3>Trophies</h3><div class="miles">' + miles.map(function (m) {
+      return '<div class="mile ' + (m.ok ? m.c : 'lock') + '">' + ti(m.k) + '<span>' + esc(m.t) + '</span><span class="sr">' + (m.ok ? 'earned' : 'locked') + '</span></div>';
+    }).join('') + '</div>' +
+      '<p class="fine" style="margin:14px 0 6px;font-weight:600">' + (lost > 0 ? 'You have lost ' + f1(lost) + ' kg, about the weight of…' : 'Every kilo you lose climbs this ladder.') + '</p>' +
+      '<div class="wladder">' + rungs + '</div></div>';
 
     // history
     html += '<div><h3>History</h3><div class="rows">' + keys.slice(-6).reverse().map(function (k) {
