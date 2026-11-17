@@ -1883,25 +1883,27 @@ svg.chart .wb.n.c-good { fill: #17A06A; }
     if (!box) return;
     var k = iso(weekStart), DNL = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'], h = '';
     if (k >= iso(todayMon)) {
-      var cur = swp[k], pair = [];
-      if (cur) for (var c = 0; c < 7; c++) if (cur[c] !== c) pair.push(c);
-      if (pair.length === 2) {
-        var can = swapElig(k, pair[0]) && swapElig(k, pair[1]);
-        h = '<p class="fine" style="margin:0 0 6px">Swapped this week: ' + DNL[pair[0]] + ' and ' + DNL[pair[1]] + '. It only applies to this week.</p>' +
-          '<button type="button" class="ghost" data-act="swapundo"' + (can ? '' : ' disabled') + '>Undo swap</button>' +
-          (can ? '' : '<p class="fine" style="margin:6px 0 0">A swap can only be undone while both days are still ahead of you and nothing is ticked on them.</p>');
-      } else if (swapElig(k, dayIdx)) {
+      // Any number of swaps per week. Each one trades the plans of two days; they stack.
+      var cur = swp[k], moved = [];
+      if (cur) for (var c = 0; c < 7; c++) if (cur[c] !== c) moved.push(c);
+      if (swapElig(k, dayIdx)) {
         var others = [];
         for (var j = 0; j < 7; j++) if (j !== dayIdx && swapElig(k, j)) others.push(j);
         if (others.length) {
           if (swapOpen) {
-            h = '<p class="fine" style="margin:0 0 6px">Swap ' + DNL[dayIdx] + ' with:</p><div class="lchips" role="group" aria-label="Swap with">' +
+            h += '<p class="fine" style="margin:0 0 6px">Swap ' + DNL[dayIdx] + ' with:</p><div class="lchips" role="group" aria-label="Swap with">' +
               others.map(function (j) { return '<button type="button" data-act="swapdo" data-i="' + j + '">' + DN[j] + '</button>'; }).join('') +
-              '<button type="button" data-act="swapcancel">Cancel</button></div><p class="fine" style="margin:6px 0 0">The whole days trade places for this week only. Streaks, stars and badges follow the new days.</p>';
+              '<button type="button" data-act="swapcancel">Cancel</button></div><p class="fine" style="margin:6px 0 0">The whole days trade places for this week only. You can swap as many days as you like. Streaks, stars and badges follow the new days.</p>';
           } else {
-            h = '<button type="button" class="ghost" data-act="swapopen">Swap ' + DNL[dayIdx] + ' with another day</button>';
+            h += '<button type="button" class="ghost" data-act="swapopen">Swap ' + DNL[dayIdx] + ' with another day</button>';
           }
         }
+      }
+      if (moved.length && !swapOpen) {
+        var canU = moved.every(function (m) { return swapElig(k, m); });
+        h += '<p class="fine" style="margin:8px 0 6px">Swapped this week: ' + moved.map(function (m) { return DN[m] + ' has ' + DNL[cur[m]] + '’s plan'; }).join(', ') + '.</p>' +
+          '<button type="button" class="ghost" data-act="swapundo"' + (canU ? '' : ' disabled') + '>Undo all swaps</button>' +
+          (canU ? '' : '<p class="fine" style="margin:6px 0 0">Swaps can only be undone while every swapped day is still ahead of you and nothing is ticked on it. You can still swap the days ahead again.</p>');
       }
     }
     box.innerHTML = h;
@@ -4073,15 +4075,17 @@ svg.chart .wb.n.c-good { fill: #17A06A; }
     else if (act === 'swapdo') {
       var sk = iso(weekStart), sj = +t.getAttribute('data-i');
       if (swapElig(sk, dayIdx) && swapElig(sk, sj) && sj !== dayIdx) {
-        var perm = [0, 1, 2, 3, 4, 5, 6]; perm[dayIdx] = sj; perm[sj] = dayIdx;
-        swp[sk] = perm; swapOpen = false; save(); render();
+        var perm = (swp[sk] || [0, 1, 2, 3, 4, 5, 6]).slice(), tmpd = perm[dayIdx];
+        perm[dayIdx] = perm[sj]; perm[sj] = tmpd;
+        if (perm.every(function (v, ix) { return v === ix; })) delete swp[sk]; else swp[sk] = perm;
+        swapOpen = false; save(); render();
         toast(DN[dayIdx] + ' and ' + DN[sj] + ' are swapped for this week.');
       }
     }
     else if (act === 'swapundo') {
       var uk = iso(weekStart), up = swp[uk], ud = [];
       if (up) for (var uc = 0; uc < 7; uc++) if (up[uc] !== uc) ud.push(uc);
-      if (up && ud.length === 2 && swapElig(uk, ud[0]) && swapElig(uk, ud[1])) { delete swp[uk]; save(); render(); toast('Swap undone.'); }
+      if (up && ud.length && ud.every(function (x) { return swapElig(uk, x); })) { delete swp[uk]; save(); render(); toast(ud.length > 2 ? 'All swaps undone.' : 'Swap undone.'); }
     }
     else if (act === 'chr') {
       var cm = t.getAttribute('data-id');
