@@ -2691,7 +2691,7 @@ svg.chart .wb.n.c-good { fill: #17A06A; }
     html += '<div><h3>Your data</h3><div class="rows"><div class="r"><span>Storage</span><b id="set-status">' + esc(statusText || modeText()) + '</b></div></div>' +
       '<div class="databtns">' + (window.claude ? '' : '<button type="button" class="ghost" data-act="export">Export backup</button>') + '<label class="ghost filebtn">Import backup<input type="file" id="imp" accept="application/json,.json" hidden></label></div>' +
       '<p class="fine">' + (window.claude ? 'Export works in the installed web app. ' : '') + 'A backup is one small file with everything: plan, ticks, weights, meals and badges. Keep one before switching phones or clearing your browser.</p>' +
-      '<p class="fine">Three lifting sessions a week of 45 to 60 minutes, each ending with 15 minutes of cardio, plus easy cardio on Tuesday, Thursday and Saturday to reach 150 minutes. Those three are bonus days: optional, they earn extra credit and never count against you. A week keeps your streak once every Monday, Wednesday and Friday session is fully ticked. Fat can\'t be burned from one spot, so belly fat comes down as your whole body loses fat, which also needs a modest calorie deficit and enough protein. Keep neck work light and slow. A day counts as a strength day once you tick 2 or more lifts. All strength exercises use free weights. Ticking a lift without typing a weight logs the suggested weight.</p>' + '</div>';
+      '<p class="fine">' + (iso(todayMon) >= THU_FROM ? 'Four lifting sessions a week (Mon, Wed, Thu, Fri)' : 'Three lifting sessions a week') + ' of 45 to 60 minutes, each ending with 15 minutes of cardio, plus easy cardio on ' + (iso(todayMon) >= THU_FROM ? 'Tuesday and Saturday' : 'Tuesday, Thursday and Saturday') + ' to reach 150 minutes. Those are bonus days: optional, they earn extra credit and never count against you. A week keeps your streak once every lifting session is fully ticked. Fat can\'t be burned from one spot, so belly fat comes down as your whole body loses fat, which also needs a modest calorie deficit and enough protein.  A day counts as a strength day once you tick 2 or more lifts. All strength exercises use free weights. Ticking a lift without typing a weight logs the suggested weight.</p>' + '</div>';
     el.settings.innerHTML = html;
     if (fid && /^(startkg|startfat|goalkg|bw)$/.test(fid)) { var fe = document.getElementById(fid); if (fe) { try { fe.focus(); } catch (e) {} } }
   }
@@ -3393,11 +3393,11 @@ svg.chart .wb.n.c-good { fill: #17A06A; }
       days.push({ t: td, n: nd });
     }
     var trainFrac = plannedMin ? Math.min(1, baseMin / plannedMin) : 0;
-    var train = 0.6 * trainFrac + 0.4 * (strTarget ? Math.min(1, strDays / Math.min(3, strTarget)) : 0);
+    var train = 0.6 * trainFrac + 0.4 * (strTarget ? Math.min(1, strDays / Math.min(k >= THU_FROM ? 4 : 3, strTarget)) : 0);
     var nutr = nn ? ns / nn : 0;
     var total = nutriOn ? 0.6 * train + 0.4 * nutr : train;
     var stars = total < 0.25 ? 1 : total < 0.45 ? 2 : total < 0.65 ? 3 : total < 0.85 ? 4 : 5;
-    return { bDays: bDays, bMin: bMin, bStretch: bStretch, k: k, trainFrac: trainFrac, strFrac: strTarget ? Math.min(1, strDays / Math.min(3, strTarget)) : 0, train: train, nutr: nutr, nutriOn: nutriOn, total: total, stars: stars, minutes: allMin, actDays: actDays, strDays: strDays, days: days, lastDay: lastDay };
+    return { bDays: bDays, bMin: bMin, bStretch: bStretch, k: k, trainFrac: trainFrac, strFrac: strTarget ? Math.min(1, strDays / Math.min(k >= THU_FROM ? 4 : 3, strTarget)) : 0, train: train, nutr: nutr, nutriOn: nutriOn, total: total, stars: stars, minutes: allMin, actDays: actDays, strDays: strDays, days: days, lastDay: lastDay };
   }
   function hm(min) { var h = Math.floor(min / 60), m = Math.round(min % 60); return h ? h + ' h ' + (m ? m + ' min' : '').trim() : m + ' min'; }
   function starsHtml(n) {
@@ -3525,10 +3525,10 @@ svg.chart .wb.n.c-good { fill: #17A06A; }
       var c = 2 * Math.PI * r, v = Math.max(0, Math.min(1, val));
       return '<circle class="rg tr ' + cls + '" cx="56" cy="56" r="' + r + '"/><circle class="rg ' + cls + '" cx="56" cy="56" r="' + r + '" stroke-dasharray="' + (c * v).toFixed(1) + ' ' + c.toFixed(1) + '"/>';
     }
-    var rT = Math.round(ws.trainFrac * 100), rN = ws.nutriOn ? Math.round(ws.nutr * 100) : 0;
-    html += '<div class="rings"><svg width="112" height="112" viewBox="0 0 112 112" role="img" aria-label="Training ' + rT + ' percent, strength ' + Math.min(3, ws.strDays) + ' of 3 days, nutrition ' + rN + ' percent"><g transform="rotate(-90 56 56)">' +
-      ring(50, ws.trainFrac, 'rt') + ring(38, Math.min(1, ws.strDays / 3), 'rs') + ring(26, ws.nutriOn ? ws.nutr : 0, 'rn') + '</g></svg>' +
-      '<div class="rlegend"><div style="--d:var(--acc)"><span>TRAINING</span><b>' + rT + '%</b></div><div style="--d:var(--acc2)"><span>STRENGTH</span><b>' + Math.min(3, ws.strDays) + ' of 3 days</b></div><div style="--d:var(--grn)"><span>NUTRITION</span><b>' + rN + '%</b></div></div></div>';
+    var sT = ws.k >= THU_FROM ? 4 : 3, rT = Math.round(ws.trainFrac * 100), rN = ws.nutriOn ? Math.round(ws.nutr * 100) : 0;
+    html += '<div class="rings"><svg width="112" height="112" viewBox="0 0 112 112" role="img" aria-label="Training ' + rT + ' percent, strength ' + Math.min(sT, ws.strDays) + ' of ' + sT + ' days, nutrition ' + rN + ' percent"><g transform="rotate(-90 56 56)">' +
+      ring(50, ws.trainFrac, 'rt') + ring(38, Math.min(1, ws.strDays / sT), 'rs') + ring(26, ws.nutriOn ? ws.nutr : 0, 'rn') + '</g></svg>' +
+      '<div class="rlegend"><div style="--d:var(--acc)"><span>TRAINING</span><b>' + rT + '%</b></div><div style="--d:var(--acc2)"><span>STRENGTH</span><b>' + Math.min(sT, ws.strDays) + ' of ' + sT + ' days</b></div><div style="--d:var(--grn)"><span>NUTRITION</span><b>' + rN + '%</b></div></div></div>';
     var tdy = trainDay(iso(todayMon), todayIdx), dnames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
     var tcount = 0, tdone = 0, bonusToday = rowsOn(iso(todayMon), todayIdx).some(function (a) { return isBonus(a); });
     rowsOn(iso(todayMon), todayIdx).forEach(function (a) { if (!isBonus(a)) { tcount++; if ((done[iso(todayMon)] || {})[a.id]) tdone++; } });
@@ -3552,7 +3552,7 @@ svg.chart .wb.n.c-good { fill: #17A06A; }
     }
     html += '<div><h3>Your week</h3>' +
       ratingCard(notStarted ? 'First week' : 'This week, on pace so far', ws, 'Rated against the days up to today, so Monday morning does not start at one star.', notStarted ? 'Starts Monday 9 November. Your first rating appears once you have trained a day.' : '') +
-      '<p class="fine">Stars: under 25% is 1, then 45%, 65% and 85% for 2, 3 and 4 stars. Training counts 60% (planned minutes done, plus 3 strength days), nutrition 40% (calories near target and protein hit, days not logged count as 0).</p></div>';
+      '<p class="fine">Stars: under 25% is 1, then 45%, 65% and 85% for 2, 3 and 4 stars. Training counts 60% (planned minutes done, plus ' + (ws.k >= THU_FROM ? 4 : 3) + ' strength days), nutrition 40% (calories near target and protein hit, days not logged count as 0).</p></div>';
 
     // chart
     html += '<div><h3>Strength and nutrition by day</h3>' + weekChart(chartWs) +
