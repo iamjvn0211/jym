@@ -1215,6 +1215,42 @@ svg.chart .wb.n.c-good { fill: #17A06A; }
       ],
       tip: "Move straight up and down. Rolling your shoulders does not add anything."
     },
+    "Dumbbell squeeze press": {
+      steps: [
+        "Lie on your back on a mat, knees bent, feet flat. Hold two dumbbells above your chest and press them firmly together.",
+        "Keep squeezing them together as you lower them to your chest over 2 seconds.",
+        "Press back up, still squeezing. The squeeze is what works the inner chest."
+      ],
+      tip: "Lighter than your normal press: the squeeze makes it much harder. Keep the dumbbells touching for every rep.",
+      q: "dumbbell squeeze press"
+    },
+    "Dumbbell floor press": {
+      steps: [
+        "Lie on a mat, knees bent, a dumbbell in each hand above your chest, palms facing your feet.",
+        "Lower until your upper arms touch the floor, elbows at about 45 degrees from your body. Pause for a second.",
+        "Press back up to straight arms."
+      ],
+      tip: "The floor stops the movement early, which is easy on the shoulders. Don't bounce the elbows off the floor.",
+      q: "dumbbell floor press"
+    },
+    "Dumbbell floor fly": {
+      steps: [
+        "Lie on a mat with the dumbbells above your chest, palms facing each other, elbows slightly bent.",
+        "Open your arms out to the sides in a wide arc until your upper arms touch the floor.",
+        "Bring them back up along the same arc, as if hugging a big tree."
+      ],
+      tip: "Keep the elbow bend the same the whole time, and go light. The floor stops the stretch before it gets risky for the shoulder.",
+      q: "dumbbell floor fly"
+    },
+    "Floor pullover": {
+      steps: [
+        "Lie on a mat, knees bent. Hold one dumbbell with both hands by the top end, arms straight above your chest.",
+        "Lower it back over your head in an arc, elbows slightly bent, until it's just above the floor behind you.",
+        "Pull it back over your chest along the same arc, keeping your lower back on the floor."
+      ],
+      tip: "Breathe in on the way back, out on the way up. Ribs stay down, so your back doesn't arch.",
+      q: "lying dumbbell pullover floor"
+    },
     "Side-lying external rotation": {
       steps: [
         "Lie on your side with a light dumbbell in your top hand. Put a rolled towel between your upper arm and your side.",
@@ -1597,6 +1633,11 @@ svg.chart .wb.n.c-good { fill: #17A06A; }
       P.forEach(function (a, ix) { if (at < 0 && a.day === r.day && a.cat === 'car' && !a.bonus) at = ix; });
       P.splice(at < 0 ? P.length : at, 0, r);
     });
+    // Second chest day on Thursday, as optional bonus work (floor routine with two dumbbells).
+    add(3, 'str', 'Dumbbell squeeze press', '3 × 10, press the dumbbells together the whole time', 6, 1);
+    add(3, 'str', 'Dumbbell floor press', '3 × 10, pause when the elbows touch the floor', 6, 1);
+    add(3, 'str', 'Dumbbell floor fly', '3 × 10, slight bend in the elbows', 6, 1);
+    add(3, 'str', 'Floor pullover', '3 × 10, one dumbbell in both hands', 5, 1);
     // Pigeon pose was removed. Its rows are still created above so every later id stays the same, then dropped here.
     return P.filter(function (a) { return a.name !== 'Pigeon pose'; });
   }
@@ -1818,6 +1859,7 @@ svg.chart .wb.n.c-good { fill: #17A06A; }
 
   // Week view as a lane of session cards: colour band for the day type, session name, minutes and progress.
   var PLANTITLE = { 0: 'Chest & biceps', 2: 'Shoulders', 4: 'Back & triceps' };
+  var BONUSTITLE = { 3: 'Chest + easy bike' };
   function renderStrip() {
     var dn = weekDone(), k = iso(weekStart), html = '', DL = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
     var keepX = el.strip.scrollLeft;
@@ -1831,7 +1873,7 @@ svg.chart .wb.n.c-good { fill: #17A06A; }
       var pct = acts.length ? Math.round(n / acts.length * 100) : bacts.length ? Math.round(bdone / bacts.length * 100) : 0;
       var pd = planDay(k, i), isToday = iso(d) === iso(now);
       var mainRow = (acts.length ? acts : bacts).filter(function (a) { return a.cat !== 'mob'; })[0];
-      var title = type === 'str' ? (PLANTITLE[pd] || 'Strength') : type === 'bon' ? (mainRow ? mainRow.name : 'Bonus') : 'Rest day';
+      var title = type === 'str' ? (PLANTITLE[pd] || 'Strength') : type === 'bon' ? (BONUSTITLE[pd] && bacts.some(function (a) { return a.cat === 'str'; }) ? BONUSTITLE[pd] : mainRow ? mainRow.name : 'Bonus') : 'Rest day';
       var mins = 0;
       (acts.length ? acts : bacts.filter(function (a) { return !a.bonus && a.cat !== 'mob'; })).forEach(function (a) { mins += a.min | 0; });
       var am = type === 'str' && typeof actMin === 'function' ? actMin(k, i) : null;
@@ -3518,7 +3560,7 @@ svg.chart .wb.n.c-good { fill: #17A06A; }
   var cloudFailed = false;
   var saving = false, dirty = false, saveTimer = null;
 
-  function serialize() { return { v: 10, pv: 8, swp: swp, cel: cel, tm: tm, tma: tmA, seen: seen, startKg: startKg, startFat: startFat, plan: plan, done: done, logs: logs, recs: recs, level: level, body: bodyKg, weigh: weigh, goalKg: goalKg, goalMonths: goalMonths, nutri: nutriSerialize() }; }
+  function serialize() { return { v: 10, pv: 9, swp: swp, cel: cel, tm: tm, tma: tmA, seen: seen, startKg: startKg, startFat: startFat, plan: plan, done: done, logs: logs, recs: recs, level: level, body: bodyKg, weigh: weigh, goalKg: goalKg, goalMonths: goalMonths, nutri: nutriSerialize() }; }
   function apply(data) {
     coreCache = null;
     if (!data || typeof data !== 'object') return;
@@ -3593,6 +3635,12 @@ svg.chart .wb.n.c-good { fill: #17A06A; }
         var have5 = {}, new5 = { 'Glute bridge': 1, 'Kneeling hip flexor stretch': 1, 'Slow leg raises': 1, 'Knee hug': 1 };
         plan.forEach(function (a) { have5[a.id] = 1; });
         plan = plan.concat(defaultPlan().filter(function (a) { return new5[a.name] && !have5[a.id]; }));
+      }
+      // Plan version 9 added the bonus chest routine on Thursday. Added once if the saved plan lacks it.
+      if (!legacy && (data.pv | 0) < 9) {
+        var have9 = {}, new9 = { 'Dumbbell squeeze press': 1, 'Dumbbell floor press': 1, 'Dumbbell floor fly': 1, 'Floor pullover': 1 };
+        plan.forEach(function (a) { have9[a.id] = 1; });
+        plan = plan.concat(defaultPlan().filter(function (a) { return new9[a.name] && !have9[a.id]; }));
       }
       // Plan version 8 replaced the neck exercise on Wednesday with the side-lying external rotation. Same row, so ticks stay.
       if ((data.pv | 0) < 8) plan.forEach(function (a) { if (a.name === 'Neck flexion and extension') { a.name = 'Side-lying external rotation'; a.detail = '3 × 12 per side, light'; a.min = 5; } });
