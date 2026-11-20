@@ -1553,6 +1553,19 @@ svg.chart .wb.n.c-good { fill: #17A06A; }
   }
 
   var PLATE_FROM = '2026-11-16';
+  // Thursday's chest exercises go before that day's cardio, so the bike stays at the end like on the other days.
+  var CHEST2 = { 'Dumbbell squeeze press': 1, 'Dumbbell floor press': 1, 'Dumbbell floor fly': 1, 'Floor pullover': 1 };
+  function chestFirst(list) {
+    var moved = list.filter(function (a) { return a.day === 3 && CHEST2[a.name]; });
+    if (!moved.length) return list;
+    var rest = list.filter(function (a) { return !(a.day === 3 && CHEST2[a.name]); }), at = -1;
+    rest.forEach(function (a, ix) { if (at < 0 && a.day === 3 && a.cat === 'car') at = ix; });
+    if (at < 0) at = rest.length;
+    Array.prototype.splice.apply(rest, [at, 0].concat(moved));
+    list.length = 0;
+    Array.prototype.push.apply(list, rest);
+    return list;
+  }
   function defaultPlan() {
     var P = [];
     function add(day, cat, name, detail, min, bonus) {
@@ -1638,6 +1651,7 @@ svg.chart .wb.n.c-good { fill: #17A06A; }
     add(3, 'str', 'Dumbbell floor press', '3 × 10, pause when the elbows touch the floor', 6, 1);
     add(3, 'str', 'Dumbbell floor fly', '3 × 10, slight bend in the elbows', 6, 1);
     add(3, 'str', 'Floor pullover', '3 × 10, one dumbbell in both hands', 5, 1);
+    chestFirst(P);
     // Pigeon pose was removed. Its rows are still created above so every later id stays the same, then dropped here.
     return P.filter(function (a) { return a.name !== 'Pigeon pose'; });
   }
@@ -3560,7 +3574,7 @@ svg.chart .wb.n.c-good { fill: #17A06A; }
   var cloudFailed = false;
   var saving = false, dirty = false, saveTimer = null;
 
-  function serialize() { return { v: 10, pv: 9, swp: swp, cel: cel, tm: tm, tma: tmA, seen: seen, startKg: startKg, startFat: startFat, plan: plan, done: done, logs: logs, recs: recs, level: level, body: bodyKg, weigh: weigh, goalKg: goalKg, goalMonths: goalMonths, nutri: nutriSerialize() }; }
+  function serialize() { return { v: 10, pv: 10, swp: swp, cel: cel, tm: tm, tma: tmA, seen: seen, startKg: startKg, startFat: startFat, plan: plan, done: done, logs: logs, recs: recs, level: level, body: bodyKg, weigh: weigh, goalKg: goalKg, goalMonths: goalMonths, nutri: nutriSerialize() }; }
   function apply(data) {
     coreCache = null;
     if (!data || typeof data !== 'object') return;
@@ -3642,6 +3656,8 @@ svg.chart .wb.n.c-good { fill: #17A06A; }
         plan.forEach(function (a) { have9[a.id] = 1; });
         plan = plan.concat(defaultPlan().filter(function (a) { return new9[a.name] && !have9[a.id]; }));
       }
+      // Plan version 10 moved them in front of Thursday's cardio.
+      if (!legacy && (data.pv | 0) < 10) chestFirst(plan);
       // Plan version 8 replaced the neck exercise on Wednesday with the side-lying external rotation. Same row, so ticks stay.
       if ((data.pv | 0) < 8) plan.forEach(function (a) { if (a.name === 'Neck flexion and extension') { a.name = 'Side-lying external rotation'; a.detail = '3 × 12 per side, light'; a.min = 5; } });
       // Plan version 7 removed the pigeon pose everywhere.
