@@ -1087,6 +1087,10 @@ svg.chart .wb.n.c-good { fill: #17A06A; }
     'Rear delt fly':                    { r: 0.07,  step: 1,   inc: 1,   per: 'each' },
     'Dumbbell shrug':                   { r: 0.33,  step: 2,   inc: 2,   per: 'each' },
     'Dumbbell pullover':                { r: 0.22,  step: 2,   inc: 2,   per: 'one' },
+    'Dumbbell squeeze press':           { r: 0.18,  step: 2,   inc: 2,   per: 'each' },
+    'Dumbbell floor press':             { r: 0.25,  step: 2,   inc: 2,   per: 'each' },
+    'Dumbbell floor fly':               { r: 0.11,  step: 2,   inc: 2,   per: 'each' },
+    'Floor pullover':                   { r: 0.2,   step: 2,   inc: 2,   per: 'one' },
     'Dumbbell bent-over row':           { r: 0.28,  step: 2,   inc: 2,   per: 'each' },
     'Side-lying external rotation':     { r: 0.04,  step: 1,   inc: 1,   per: 'one' },
     'One-arm dumbbell row':             { r: 0.31,  step: 2,   inc: 2,   per: 'one' },
@@ -1554,12 +1558,13 @@ svg.chart .wb.n.c-good { fill: #17A06A; }
 
   var PLATE_FROM = '2026-11-16';
   // Thursday's chest exercises go before that day's cardio, so the bike stays at the end like on the other days.
+  var THU_FROM = '2026-11-23';
   var CHEST2 = { 'Dumbbell squeeze press': 1, 'Dumbbell floor press': 1, 'Dumbbell floor fly': 1, 'Floor pullover': 1 };
   function chestFirst(list) {
-    var moved = list.filter(function (a) { return a.day === 3 && CHEST2[a.name]; });
+    var moved = list.filter(function (a) { return a.day === 3 && CHEST2[a.name] && !a.from; });
     if (!moved.length) return list;
-    var rest = list.filter(function (a) { return !(a.day === 3 && CHEST2[a.name]); }), at = -1;
-    rest.forEach(function (a, ix) { if (at < 0 && a.day === 3 && a.cat === 'car') at = ix; });
+    var rest = list.filter(function (a) { return !(a.day === 3 && CHEST2[a.name] && !a.from); }), at = -1;
+    rest.forEach(function (a, ix) { if (at < 0 && a.day === 3 && a.cat === 'car' && !a.from) at = ix; });
     if (at < 0) at = rest.length;
     Array.prototype.splice.apply(rest, [at, 0].concat(moved));
     list.length = 0;
@@ -1593,6 +1598,7 @@ svg.chart .wb.n.c-good { fill: #17A06A; }
     add(2, 'car', 'Steady cardio', 'Bike or rower, moderate pace', 15);
     // Thu: easy cardio
     add(3, 'car', 'Easy bike or rower', 'Easy enough to hold a conversation', 35);
+    P[P.length - 1].bonus = 1; P[P.length - 1].to = THU_FROM;
     // Fri: back and triceps (about 58 min)
     add(4, 'mob', 'Warm-up', 'Dead hangs, band pull-aparts, thoracic rotations', 5);
     add(4, 'str', 'Dumbbell pullover', '3 × 12', 8);
@@ -1652,6 +1658,17 @@ svg.chart .wb.n.c-good { fill: #17A06A; }
     add(3, 'str', 'Dumbbell floor fly', '3 × 10, slight bend in the elbows', 6, 1);
     add(3, 'str', 'Floor pullover', '3 × 10, one dumbbell in both hands', 5, 1);
     chestFirst(P);
+    // Thursday becomes the second chest day, a full lifting day from the week of 23 November.
+    // The bonus version above only covers the weeks before, so finished weeks keep their scores.
+    P.forEach(function (a) { if (a.day === 3 && CHEST2[a.name]) a.to = THU_FROM; });
+    var t0 = P.length;
+    add(3, 'mob', 'Warm-up', 'Arm circles, band pull-aparts, light push-ups', 5);
+    add(3, 'str', 'Dumbbell squeeze press', '3 × 10, press the dumbbells together the whole time', 6);
+    add(3, 'str', 'Dumbbell floor press', '3 × 10, pause when the elbows touch the floor', 6);
+    add(3, 'str', 'Dumbbell floor fly', '3 × 10, slight bend in the elbows', 6);
+    add(3, 'str', 'Floor pullover', '3 × 10, one dumbbell in both hands', 5);
+    add(3, 'car', 'Easy bike or rower', 'Easy pace, enough to hold a conversation', 15);
+    P.slice(t0).forEach(function (a) { a.from = THU_FROM; });
     // Pigeon pose was removed. Its rows are still created above so every later id stays the same, then dropped here.
     return P.filter(function (a) { return a.name !== 'Pigeon pose'; });
   }
@@ -1790,7 +1807,7 @@ svg.chart .wb.n.c-good { fill: #17A06A; }
   // Day swap for one week. Calendar day i of week k shows the rows of plan day planDay(k, i). Rows keep their plan day, so
   // a strength row stays a strength row when it moves, and ticks stay attached to the row ids.
   function planDay(k, i) { var p = swp[k]; return p && p[i] != null ? p[i] : i; }
-  function live(a, k) { return !(a.from && k < a.from); }
+  function live(a, k) { return !(a.from && k < a.from) && !(a.to && k >= a.to); }
   function rowsOn(k, i) { var pd = planDay(k, i); return plan.filter(function (a) { return a.day === pd && live(a, k); }); }
   function swapElig(k, i) {
     var cw = iso(todayMon);
@@ -1804,7 +1821,7 @@ svg.chart .wb.n.c-good { fill: #17A06A; }
     var dn = weekDone();
     var car = 0, mob = 0, perDay = [0, 0, 0, 0, 0, 0, 0];
     plan.forEach(function (a) {
-      if (!dn[a.id]) return;
+      if (!dn[a.id] || !live(a, iso(weekStart))) return;
       if (a.cat === 'car') car += a.min || 0;
       else if (a.cat === 'mob') mob += 1;
       else if (!isBonus(a)) perDay[a.day] += 1;
@@ -1872,7 +1889,7 @@ svg.chart .wb.n.c-good { fill: #17A06A; }
   }
 
   // Week view as a lane of session cards: colour band for the day type, session name, minutes and progress.
-  var PLANTITLE = { 0: 'Chest & biceps', 2: 'Shoulders', 4: 'Back & triceps' };
+  var PLANTITLE = { 0: 'Chest & biceps', 2: 'Shoulders', 3: 'Chest, second day', 4: 'Back & triceps' };
   var BONUSTITLE = { 3: 'Chest + easy bike' };
   function renderStrip() {
     var dn = weekDone(), k = iso(weekStart), html = '', DL = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -1889,7 +1906,8 @@ svg.chart .wb.n.c-good { fill: #17A06A; }
       var mainRow = (acts.length ? acts : bacts).filter(function (a) { return a.cat !== 'mob'; })[0];
       var title = type === 'str' ? (PLANTITLE[pd] || 'Strength') : type === 'bon' ? (BONUSTITLE[pd] && bacts.some(function (a) { return a.cat === 'str'; }) ? BONUSTITLE[pd] : mainRow ? mainRow.name : 'Bonus') : 'Rest day';
       var mins = 0;
-      (acts.length ? acts : bacts.filter(function (a) { return !a.bonus && a.cat !== 'mob'; })).forEach(function (a) { mins += a.min | 0; });
+      if (acts.length) acts.forEach(function (a) { mins += a.min | 0; });
+      else { var mc = bacts.filter(function (a) { return a.cat === 'car'; })[0]; mins = mc ? mc.min | 0 : 0; }
       var am = type === 'str' && typeof actMin === 'function' ? actMin(k, i) : null;
       var minTxt = type === 'rst' ? 'Recover' : (am != null ? am + ' min done' : mins + ' min');
       var label = fmtDay.format(d) + ', ' + (acts.length ? n + ' of ' + acts.length + ' done' : bacts.length ? 'bonus day, ' + bdone + ' of ' + bacts.length + ' done' : 'nothing planned');
@@ -1914,7 +1932,7 @@ svg.chart .wb.n.c-good { fill: #17A06A; }
   function renderTargets() {
     var s = stats();
     var rows = [
-      { k: 'str', label: 'Strength', v: s.str, t: TARGETS.str, unit: 'days' },
+      { k: 'str', label: 'Strength', v: s.str, t: iso(weekStart) >= THU_FROM ? 4 : TARGETS.str, unit: 'days' },
       { k: 'car', label: 'Cardio', v: s.car, t: TARGETS.car, unit: 'min' },
       { k: 'mob', label: 'Mobility', v: s.mob, t: TARGETS.mob, unit: 'sessions' }
     ];
@@ -2194,7 +2212,7 @@ svg.chart .wb.n.c-good { fill: #17A06A; }
       var k = iso(w), dn = done[k] || {};
       for (var d = 0; d < 7; d++) {
         var pd = planDay(k, d);
-        if (!cm[pd] || !isTrain(pd)) continue;
+        if (!cm[pd] || !isTrain(pd, k)) continue;
         var acts = rowsOn(k, d).filter(function (a) { return !isBonus(a); });
         if (!acts.length) continue;
         var dk = iso(addDays(w, d)), all = acts.every(function (a) { return dn[a.id]; });
@@ -2337,7 +2355,7 @@ svg.chart .wb.n.c-good { fill: #17A06A; }
   }
   var liftDay = null; // 0, 2, 4 or 'x' for lifts that are no longer in the plan
   function liftGroups() {
-    var g = { 0: [], 2: [], 4: [], x: [] }, seen = {};
+    var g = { 0: [], 2: [], 3: [], 4: [], x: [] }, seen = {};
     plan.forEach(function (a) {
       if (a.cat !== 'str' || isBonus(a) || NOWEIGHT[a.name] || seen[a.name]) return;
       seen[a.name] = 1;
@@ -2387,11 +2405,11 @@ svg.chart .wb.n.c-good { fill: #17A06A; }
     return svg + '</svg>';
   }
   function liftHtml() {
-    var g = liftGroups(), days = [[0, 'Mon'], [2, 'Wed'], [4, 'Fri']];
-    var DL = { 0: 'Monday', 2: 'Wednesday', 4: 'Friday' };
+    var g = liftGroups(), days = [[0, 'Mon'], [2, 'Wed']].concat(g[3].length ? [[3, 'Thu']] : []).concat([[4, 'Fri']]);
+    var DL = { 0: 'Monday', 2: 'Wednesday', 3: 'Thursday', 4: 'Friday' };
     if (liftDay == null || liftDay === 'x' || !g[liftDay] || !g[liftDay].length) {
       var pd = planDay(iso(todayMon), todayIdx);
-      liftDay = isTrain(pd) && g[pd].length ? pd : 0;
+      liftDay = isTrain(pd, iso(todayMon)) && g[pd] && g[pd].length ? pd : 0;
     }
     // Summary: a weighted average of the gain per lift, first log to latest log.
     // Lifts in the plan count fully once they have 4 logs (2 logs count a third, 3 logs two thirds), so one lucky week does not swing the number.
@@ -2413,7 +2431,7 @@ svg.chart .wb.n.c-good { fill: #17A06A; }
       }
       wsum += w; psum += w * pc;
     }
-    [0, 2, 4].forEach(function (d) { g[d].forEach(function (n) { addLift(n, true); }); });
+    [0, 2, 3, 4].forEach(function (d) { g[d].forEach(function (n) { addLift(n, true); }); });
     g.x.forEach(function (n) { addLift(n, false); });
     var pcts = nPlan ? [1] : [];
     var h = '';
@@ -2472,7 +2490,7 @@ svg.chart .wb.n.c-good { fill: #17A06A; }
     });
     html += '<div class="stc"><h3>Sessions</h3><div class="stn ss"><b>' + sk.cur + '</b><span>in a row · best ' + sk.best + '</span></div>' +
       '<div class="ssrow" aria-label="This week\'s strength sessions">' + sstrip + '</div></div></div>' +
-      '<p class="fine">Week streak: weeks in a row with every Monday, Wednesday and Friday session done. This week: ' + dc.comp + ' of ' + dc.planned + ' strength days complete. Sessions: strength sessions in a row; miss one and it starts again. The circles start fresh every Monday. Rest days, bonus days and bonus exercises never add to a streak or break it.</p>';
+      '<p class="fine">Week streak: weeks in a row with every lifting session done (Mon, Wed and Fri, plus Thu from 23 November). This week: ' + dc.comp + ' of ' + dc.planned + ' strength days complete. Sessions: strength sessions in a row; miss one and it starts again. The circles start fresh every Monday. Rest days, bonus days and bonus exercises never add to a streak or break it.</p>';
 
     var sh = '<div>' + liftHtml() + '</div>';
     sh += '<div class="encard"><h3>Energy this week</h3><div class="stn"><b>' + fmtKcal(b.base + b.extra) + '</b><span>kcal burned' + (b.nExtra ? ' · +' + fmtKcal(b.extra) + ' from bonus' : '') + '</span></div>' +
@@ -2980,7 +2998,9 @@ svg.chart .wb.n.c-good { fill: #17A06A; }
   var OLD_DISH = {'b1':['b',400,30,64,4],'b2':['b',410,27,33,17],'b3':['b',450,39,55,9],'b4':['b',460,32,58,10],'b5':['b',390,28,17,22],'b6':['b',360,36,23,14],'l1':['l',555,51,68,9],'l2':['l',515,38,69,8],'l3':['l',430,39,49,9],'l4':['l',610,28,95,12],'l5':['l',500,36,60,13],'l6':['l',500,43,46,15],'d1':['d',565,36,60,20],'d2':['d',510,38,70,8],'d3':['d',620,47,85,10],'d4':['d',500,25,70,13],'d5':['d',545,43,71,7],'d6':['d',530,45,53,15],'d7':['d',520,47,72,6],'d8':['d',590,53,64,12],'d9':['d',460,38,59,8],'d10':['d',590,42,70,13],'d11':['d',605,52,76,9],'d12':['d',470,42,57,8],'d13':['d',640,54,98,6],'d14':['d',540,38,53,15],'d15':['d',620,50,66,18],'d16':['d',600,49,86,6],'d17':['d',530,45,61,8],'d18':['d',560,41,70,12],'d19':['d',630,38,80,19],'d20':['d',600,44,77,13],'d21':['d',600,54,68,9],'d22':['d',500,43,70,4],'d23':['d',610,42,66,20],'d24':['d',570,47,78,7],'d25':['d',580,41,72,15],'d26':['d',450,42,52,5]};
   var nutDay = todayIdx;
 
-  function isTrain(i) { return i === 0 || i === 2 || i === 4; }
+  // Lifting days: Mon, Wed and Fri, plus Thursday from the week of 23 November 2026.
+  // With a week key the answer is for that week; without one it says whether the day can be a lifting day at all.
+  function isTrain(i, k) { return i === 0 || i === 2 || i === 4 || (i === 3 && (k === undefined || k >= THU_FROM)); }
 
   // 1800 kcal on lifting days, 1600 on the other days. Days before 16 November 2026 keep the earlier 2000 and 1800,
   // so weeks that are already finished keep their scores. Protein 1.8 g per kg, fat 0.7 g per kg, carbs fill the rest.
@@ -3090,7 +3110,7 @@ svg.chart .wb.n.c-good { fill: #17A06A; }
   }
   function curNutri() {
     var key = iso(addDays(todayMon, nutDay));
-    return { T: nutriTargets(isTrain(planDay(iso(todayMon), nutDay)), key), key: key, day: nutri.days[key] || { extra: [] } };
+    return { T: nutriTargets(isTrain(planDay(iso(todayMon), nutDay), iso(todayMon)), key), key: key, day: nutri.days[key] || { extra: [] } };
   }
   function eatenTot(c) {
     var t = { kcal: 0, p: 0, c: 0, f: 0 };
@@ -3162,12 +3182,12 @@ svg.chart .wb.n.c-good { fill: #17A06A; }
       var bd = dish(ids[0], 'b'), ld = dish(ids[1], 'l');
       dd = dish(ids[2], 'd');
       if (!bd || !ld || !dd) return null;
-      var m3 = quarter(nutriTargets(isTrain(wi), k).kcal / (bd[1] + ld[1] + dd[1]));
+      var m3 = quarter(nutriTargets(isTrain(wi, mk), k).kcal / (bd[1] + ld[1] + dd[1]));
       if (e.b) out.push(item(bd, m3));
       if (e.l) out.push(item(ld, m3));
     } else if (ids.length === 1) dd = dish(ids[0], 'd');
     if (!dd) return null;
-    if (e.d) out.push(item(dd, quarter(nutriTargets(isTrain(planDay(mk, wi)), k).kcal * 0.45 / dd[1])));
+    if (e.d) out.push(item(dd, quarter(nutriTargets(isTrain(planDay(mk, wi), mk), k).kcal * 0.45 / dd[1])));
     return out;
   }
   function nutriApply(src) {
@@ -3284,10 +3304,10 @@ svg.chart .wb.n.c-good { fill: #17A06A; }
     var laneX = {};
     if (!el['panel-nutrition'].hidden) Array.prototype.forEach.call(el.nutrition.querySelectorAll('.lane'), function (l) { laneX[l.getAttribute('data-slot')] = l.scrollLeft; });
     renderHead(); renderWelcome(); renderGame();
-    var c = curNutri(), T = c.T, ea = eatenTot(c), train = isTrain(planDay(iso(todayMon), nutDay));
+    var c = curNutri(), T = c.T, ea = eatenTot(c), train = isTrain(planDay(iso(todayMon), nutDay), iso(todayMon));
     var names = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
     var chips = '<div class="lchips" role="group" aria-label="Day">' + names.map(function (n, i) {
-      return '<button type="button" data-act="nday" data-i="' + i + '" aria-pressed="' + (i === nutDay) + '">' + n + (isTrain(planDay(iso(todayMon), i)) ? ' •' : '') + '</button>';
+      return '<button type="button" data-act="nday" data-i="' + i + '" aria-pressed="' + (i === nutDay) + '">' + n + (isTrain(planDay(iso(todayMon), i), iso(todayMon)) ? ' •' : '') + '</button>';
     }).join('') + '</div>';
     var html = '<div>' + chips +
       '<p class="line"><b>' + (train ? 'Lifting day' : 'Rest or cardio day') + '</b>: ' +
@@ -3307,7 +3327,7 @@ svg.chart .wb.n.c-good { fill: #17A06A; }
       '<p class="fine">Meat and fish are weighed raw, sides cooked unless the name says dry. Values are typical averages, so a day can be off by 10 to 20%.</p></div>';
 
     html += '<div><h3>How this is worked out</h3><p class="fine">Estimates only. Your body weight of ' + fmtN(bodyKg) + ' kg, 1.78 m and 36 years give about ' + T.bmr + ' kcal at rest (Mifflin-St Jeor). With a lightly active week (x1.35) that is about ' + T.tdee +
-      ' kcal, and the plan is ' + T.kcal + ' kcal today, about ' + Math.max(0, T.tdee - T.kcal) + ' kcal below that. Lifting days (Mon, Wed, Fri) get 1800 kcal, all other days 1600. Protein is 1.8 g per kg, in the 1.6 to 2.2 g per kg range often recommended for lifters who are cutting. Check with a doctor or dietitian if you have a health condition.</p></div>';
+      ' kcal, and the plan is ' + T.kcal + ' kcal today, about ' + Math.max(0, T.tdee - T.kcal) + ' kcal below that. Lifting days (Mon, Wed, Fri, and Thu from 23 November) get 1800 kcal, all other days 1600. Protein is 1.8 g per kg, in the 1.6 to 2.2 g per kg range often recommended for lifters who are cutting. Check with a doctor or dietitian if you have a health condition.</p></div>';
     el.nutrition.innerHTML = html;
     Array.prototype.forEach.call(el.nutrition.querySelectorAll('.lane'), function (l) {
       var k = l.getAttribute('data-slot');
@@ -3339,9 +3359,9 @@ svg.chart .wb.n.c-good { fill: #17A06A; }
     if (!day) {
       // Only the last 14 days are kept in full. Older days keep a short summary, so old weeks still count.
       var h0 = nutri.hist && nutri.hist[dk0];
-      return h0 && h0.s > 0 ? { score: h0.s, kcal: h0.k, p: h0.p, T: nutriTargets(isTrain(planDay(k, i)), dk0) } : null;
+      return h0 && h0.s > 0 ? { score: h0.s, kcal: h0.k, p: h0.p, T: nutriTargets(isTrain(planDay(k, i), k), dk0) } : null;
     }
-    var T = nutriTargets(isTrain(planDay(k, i)), dk0), kc = 0, p = 0;
+    var T = nutriTargets(isTrain(planDay(k, i), k), dk0), kc = 0, p = 0;
     (day.extra || []).forEach(function (x) { kc += x.kcal; p += x.p; });
     if (kc <= 0) return null;
     var ps = Math.min(1, p / T.p), ks;
@@ -3574,7 +3594,7 @@ svg.chart .wb.n.c-good { fill: #17A06A; }
   var cloudFailed = false;
   var saving = false, dirty = false, saveTimer = null;
 
-  function serialize() { return { v: 10, pv: 10, swp: swp, cel: cel, tm: tm, tma: tmA, seen: seen, startKg: startKg, startFat: startFat, plan: plan, done: done, logs: logs, recs: recs, level: level, body: bodyKg, weigh: weigh, goalKg: goalKg, goalMonths: goalMonths, nutri: nutriSerialize() }; }
+  function serialize() { return { v: 10, pv: 11, swp: swp, cel: cel, tm: tm, tma: tmA, seen: seen, startKg: startKg, startFat: startFat, plan: plan, done: done, logs: logs, recs: recs, level: level, body: bodyKg, weigh: weigh, goalKg: goalKg, goalMonths: goalMonths, nutri: nutriSerialize() }; }
   function apply(data) {
     coreCache = null;
     if (!data || typeof data !== 'object') return;
@@ -3620,6 +3640,7 @@ svg.chart .wb.n.c-good { fill: #17A06A; }
       var saved = data.plan.filter(function (a) { return a && typeof a.id === 'string' && typeof a.name === 'string'; }).map(function (a) {
         var o = { id: a.id, day: Math.max(0, Math.min(6, a.day | 0)), cat: CATS[a.cat] ? a.cat : 'str', name: a.name, detail: a.detail || '', min: a.min | 0, bonus: a.bonus ? 1 : 0 };
         if (typeof a.from === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(a.from)) o.from = a.from;
+        if (typeof a.to === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(a.to)) o.to = a.to;
         return o;
       });
       if (legacy) {
@@ -3655,6 +3676,18 @@ svg.chart .wb.n.c-good { fill: #17A06A; }
         var have9 = {}, new9 = { 'Dumbbell squeeze press': 1, 'Dumbbell floor press': 1, 'Dumbbell floor fly': 1, 'Floor pullover': 1 };
         plan.forEach(function (a) { have9[a.id] = 1; });
         plan = plan.concat(defaultPlan().filter(function (a) { return new9[a.name] && !have9[a.id]; }));
+      }
+      // Plan version 11 made Thursday a lifting day from the week of 23 November. The old bonus rows end there,
+      // the new full-day rows start there, so last week's stars, streaks and badges stay exactly as they were.
+      if (!legacy && (data.pv | 0) < 11) {
+        plan.forEach(function (a) {
+          if (a.day !== 3 || a.from) return;
+          if (CHEST2[a.name]) a.to = THU_FROM;
+          if (a.name === 'Easy bike or rower' && a.cat === 'car') { a.bonus = 1; a.to = THU_FROM; }
+        });
+        var have11 = {};
+        plan.forEach(function (a) { have11[a.id] = 1; });
+        plan = plan.concat(defaultPlan().filter(function (a) { return a.day === 3 && a.from === THU_FROM && !have11[a.id]; }));
       }
       // Plan version 10 moved them in front of Thursday's cardio.
       if (!legacy && (data.pv | 0) < 10) chestFirst(plan);
@@ -4631,7 +4664,7 @@ svg.chart .wb.n.c-good { fill: #17A06A; }
       if (d.getHours() < 17 || k < START || tab !== 'welcome' || tmA) return false;
       var i = (d.getDay() + 6) % 7, wk = iso(mondayOf(d));
       var acts = rowsOn(wk, i).filter(function (a) { return !isBonus(a); }), pdn = planDay(wk, i);
-      if (!acts.length || !coreMap()[pdn] || !isTrain(pdn)) return false;
+      if (!acts.length || !coreMap()[pdn] || !isTrain(pdn, wk)) return false;
       var dn = done[wk] || {};
       if (acts.some(function (a) { return dn[a.id]; })) return false;
       if (localStorage.getItem('jym:nd') === k) return false;
