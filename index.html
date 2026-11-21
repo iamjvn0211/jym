@@ -1091,6 +1091,7 @@ svg.chart .wb.n.c-good { fill: #17A06A; }
     'Dumbbell floor press':             { r: 0.25,  step: 2,   inc: 2,   per: 'each' },
     'Dumbbell floor fly':               { r: 0.11,  step: 2,   inc: 2,   per: 'each' },
     'Floor pullover':                   { r: 0.2,   step: 2,   inc: 2,   per: 'one' },
+    'Lying cross-body triceps extension': { r: 0.06, step: 1,   inc: 1,   per: 'one' },
     'Dumbbell bent-over row':           { r: 0.28,  step: 2,   inc: 2,   per: 'each' },
     'Side-lying external rotation':     { r: 0.04,  step: 1,   inc: 1,   per: 'one' },
     'One-arm dumbbell row':             { r: 0.31,  step: 2,   inc: 2,   per: 'one' },
@@ -1254,6 +1255,15 @@ svg.chart .wb.n.c-good { fill: #17A06A; }
       ],
       tip: "Breathe in on the way back, out on the way up. Ribs stay down, so your back doesn't arch.",
       q: "lying dumbbell pullover floor"
+    },
+    "Lying cross-body triceps extension": {
+      steps: [
+        "Lie on a bench or the floor with one dumbbell in one hand, arm straight up above your shoulder, palm facing your feet.",
+        "Keep the upper arm still and bend only the elbow, lowering the dumbbell across your body toward the opposite shoulder or chest.",
+        "Straighten the arm back up and squeeze the triceps at the top. Do all reps, then switch arms."
+      ],
+      tip: "Go light: the weight passes close to your face. Slow and controlled; your other hand can hold the working elbow in place.",
+      q: "lying cross body dumbbell triceps extension"
     },
     "Side-lying external rotation": {
       steps: [
@@ -1669,6 +1679,15 @@ svg.chart .wb.n.c-good { fill: #17A06A; }
     add(3, 'str', 'Floor pullover', '3 × 10, one dumbbell in both hands', 5);
     add(3, 'car', 'Easy bike or rower', 'Easy pace, enough to hold a conversation', 15);
     P.slice(t0).forEach(function (a) { a.from = THU_FROM; });
+    // Cross-body triceps extension on Friday from the week of 23 November, before the cardio finisher.
+    var x0 = P.length;
+    add(4, 'str', 'Lying cross-body triceps extension', '3 × 12 per arm, light and slow', 6);
+    P.splice(x0).forEach(function (r) {
+      r.from = THU_FROM;
+      var at = -1;
+      P.forEach(function (a, ix) { if (at < 0 && a.day === r.day && a.cat === 'car' && !a.bonus) at = ix; });
+      P.splice(at < 0 ? P.length : at, 0, r);
+    });
     // Pigeon pose was removed. Its rows are still created above so every later id stays the same, then dropped here.
     return P.filter(function (a) { return a.name !== 'Pigeon pose'; });
   }
@@ -3594,7 +3613,7 @@ svg.chart .wb.n.c-good { fill: #17A06A; }
   var cloudFailed = false;
   var saving = false, dirty = false, saveTimer = null;
 
-  function serialize() { return { v: 10, pv: 11, swp: swp, cel: cel, tm: tm, tma: tmA, seen: seen, startKg: startKg, startFat: startFat, plan: plan, done: done, logs: logs, recs: recs, level: level, body: bodyKg, weigh: weigh, goalKg: goalKg, goalMonths: goalMonths, nutri: nutriSerialize() }; }
+  function serialize() { return { v: 10, pv: 12, swp: swp, cel: cel, tm: tm, tma: tmA, seen: seen, startKg: startKg, startFat: startFat, plan: plan, done: done, logs: logs, recs: recs, level: level, body: bodyKg, weigh: weigh, goalKg: goalKg, goalMonths: goalMonths, nutri: nutriSerialize() }; }
   function apply(data) {
     coreCache = null;
     if (!data || typeof data !== 'object') return;
@@ -3676,6 +3695,16 @@ svg.chart .wb.n.c-good { fill: #17A06A; }
         var have9 = {}, new9 = { 'Dumbbell squeeze press': 1, 'Dumbbell floor press': 1, 'Dumbbell floor fly': 1, 'Floor pullover': 1 };
         plan.forEach(function (a) { have9[a.id] = 1; });
         plan = plan.concat(defaultPlan().filter(function (a) { return new9[a.name] && !have9[a.id]; }));
+      }
+      // Plan version 12 added the cross-body triceps extension on Friday from the week of 23 November.
+      if (!legacy && (data.pv | 0) < 12) {
+        var have12 = {};
+        plan.forEach(function (a) { have12[a.id] = 1; });
+        defaultPlan().filter(function (a) { return a.name === 'Lying cross-body triceps extension' && !have12[a.id]; }).forEach(function (r) {
+          var at = -1;
+          plan.forEach(function (a, ix) { if (at < 0 && a.day === r.day && a.cat === 'car' && !a.bonus) at = ix; });
+          plan.splice(at < 0 ? plan.length : at, 0, r);
+        });
       }
       // Plan version 11 made Thursday a lifting day from the week of 23 November. The old bonus rows end there,
       // the new full-day rows start there, so last week's stars, streaks and badges stay exactly as they were.
