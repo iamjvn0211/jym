@@ -85,6 +85,16 @@ h1 { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: 4
 .wcard.str .wct { background: #2457F5; }
 .wcard.bon .wct { background: #0F8A5A; }
 .wcard.rst .wct { background: #8A92A6; }
+.wcard.jok .wct { background: linear-gradient(135deg, #F5A524, #E0533B); }
+.jokbtn { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.jokbtn svg, .jokban svg { width: 18px; height: 18px; flex: none; fill: #F5A524; }
+.jokbtn span { font-weight: 500; color: var(--muted); font-size: 12px; }
+.jokno { margin: 0; }
+.jokban { display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; margin-bottom: 8px; border-radius: 14px; background: rgba(245, 165, 36, .14); border: 1px solid rgba(245, 165, 36, .45); list-style: none; }
+.jokban svg { width: 26px; height: 26px; margin-top: 2px; }
+.jokban b { display: block; font-size: 15px; margin-bottom: 2px; }
+.jokban span { font-size: 13px; color: var(--muted); line-height: 1.4; }
+.row.jokrow { opacity: .55; }
 .wcard .wcb { display: flex; flex-direction: column; gap: 5px; padding: 8px 10px 10px; flex: 1; }
 .wcard .wcn { font-size: 13px; font-weight: 700; line-height: 1.2; min-height: 32px; color: var(--ink); }
 .wcard .wcm { font-size: 11px; color: var(--muted); }
@@ -1091,6 +1101,8 @@ svg.chart .wb.n.c-good { fill: #17A06A; }
     'Dumbbell floor press':             { r: 0.25,  step: 2,   inc: 2,   per: 'each' },
     'Dumbbell floor fly':               { r: 0.11,  step: 2,   inc: 2,   per: 'each' },
     'Floor pullover':                   { r: 0.2,   step: 2,   inc: 2,   per: 'one' },
+    'Dumbbell preacher curl':           { r: 0.1,   step: 2,   inc: 2,   per: 'each' },
+    'Incline dumbbell curl':            { r: 0.1,   step: 2,   inc: 2,   per: 'each' },
     'Lying cross-body triceps extension': { r: 0.06, step: 1,   inc: 1,   per: 'one' },
     'Dumbbell bent-over row':           { r: 0.28,  step: 2,   inc: 2,   per: 'each' },
     'Side-lying external rotation':     { r: 0.04,  step: 1,   inc: 1,   per: 'one' },
@@ -1264,6 +1276,24 @@ svg.chart .wb.n.c-good { fill: #17A06A; }
       ],
       tip: "Go light: the weight passes close to your face. Slow and controlled; your other hand can hold the working elbow in place.",
       q: "lying cross body dumbbell triceps extension"
+    },
+    "Dumbbell preacher curl": {
+      steps: [
+        "Set a bench to an incline and kneel or stand behind it, resting the back of your upper arm flat on the backrest. A dumbbell in that hand, arm almost straight.",
+        "Curl the dumbbell up toward your shoulder, keeping the upper arm pressed on the pad.",
+        "Lower slowly until the arm is nearly straight, without locking the elbow. Do all reps, then switch arms."
+      ],
+      tip: "The pad stops you from swinging, so go a bit lighter than your normal curl. Don't let the weight drop at the bottom.",
+      q: "dumbbell preacher curl on incline bench"
+    },
+    "Incline dumbbell curl": {
+      steps: [
+        "Set a bench to about 45 to 60 degrees and sit back against it, a dumbbell in each hand, arms hanging straight down, palms forward.",
+        "Curl both dumbbells up without moving your upper arms forward.",
+        "Lower slowly until the arms are straight again and feel the stretch in the biceps."
+      ],
+      tip: "Keep your shoulders and head against the bench. The stretched start position makes this harder than a standing curl, so use lighter weights.",
+      q: "incline dumbbell curl"
     },
     "Side-lying external rotation": {
       steps: [
@@ -1581,6 +1611,14 @@ svg.chart .wb.n.c-good { fill: #17A06A; }
     Array.prototype.push.apply(list, rest);
     return list;
   }
+  // Where a new row goes: Monday's after the hammer curl, otherwise just before that day's cardio finisher.
+  function placeRow(list, r) {
+    var at = -1;
+    if (r.day === 0) list.forEach(function (a, ix) { if (a.day === 0 && (a.name === 'Hammer curl' || CURLS[a.name])) at = ix + 1; });
+    if (at < 0) list.forEach(function (a, ix) { if (at < 0 && a.day === r.day && a.cat === 'car' && !a.bonus && live(a, r.from || '9999')) at = ix; });
+    list.splice(at < 0 ? list.length : at, 0, r);
+  }
+  var CURLS = { 'Dumbbell preacher curl': 1, 'Incline dumbbell curl': 1 };
   function defaultPlan() {
     var P = [];
     function add(day, cat, name, detail, min, bonus) {
@@ -1688,6 +1726,13 @@ svg.chart .wb.n.c-good { fill: #17A06A; }
       P.forEach(function (a, ix) { if (at < 0 && a.day === r.day && a.cat === 'car' && !a.bonus) at = ix; });
       P.splice(at < 0 ? P.length : at, 0, r);
     });
+    // Preacher and incline curls on Monday and Thursday from the week of 23 November.
+    var c0 = P.length;
+    [0, 3].forEach(function (d) {
+      add(d, 'str', 'Dumbbell preacher curl', '3 × 10, upper arm resting on the bench', 5);
+      add(d, 'str', 'Incline dumbbell curl', '3 × 10, slow on the way down', 5);
+    });
+    P.splice(c0).forEach(function (r) { r.from = THU_FROM; placeRow(P, r); });
     // Pigeon pose was removed. Its rows are still created above so every later id stays the same, then dropped here.
     return P.filter(function (a) { return a.name !== 'Pigeon pose'; });
   }
@@ -1714,6 +1759,27 @@ svg.chart .wb.n.c-good { fill: #17A06A; }
   var cel = {};
   var swp = {}; // swp[weekKey] = 7 numbers: which plan day is shown on each calendar day of that week (only that week)
   var swapOpen = false;
+  // Joker days: jok['weekKey|calendarDay'] = 1. Two per calendar month. A joker day drops out of every target
+  // (streaks, perfect week, stars, reminders) but earns nothing, and its calorie target is a rest day's.
+  var jok = {}, JOK_MAX = 2;
+  function jokOn(k, i) { return !!jok[k + '|' + i]; }
+  function jokPd(k) { var m = {}; for (var c = 0; c < 7; c++) if (jok[k + '|' + c]) m[planDay(k, c)] = 1; return m; }
+  function jokMonth(k, i) { return iso(addDays(fromIso(k), i)).slice(0, 7); }
+  function jokUsed(mon) { return Object.keys(jok).filter(function (key) { var p = key.split('|'); return jokMonth(p[0], +p[1]) === mon; }).length; }
+  function strGoal(k) {
+    var n = k >= THU_FROM ? 4 : 3;
+    for (var c = 0; c < 7; c++) if (jok[k + '|' + c]) n--;
+    return Math.max(1, n);
+  }
+  function jokElig(k, i) {
+    if (k < iso(todayMon) || jokOn(k, i) || k < START) return false;
+    var pd = planDay(k, i);
+    if (!isTrain(pd, k)) return false;
+    var acts = rowsOn(k, i).filter(function (a) { return !isBonus(a); });
+    if (!acts.some(function (a) { return a.cat === 'str'; })) return false;
+    var dn = done[k] || {};
+    return !acts.some(function (a) { return dn[a.id]; });
+  }
   var tm = {}; // tm[weekKey|calendarDay] = { s: start ms, e: end ms, m: minutes } for finished, timed sessions
   var tmA = null; // running timer: { k: weekKey, d: calendarDay, s: start ms }
   var tmTick = null, tmArm = false;
@@ -1831,6 +1897,7 @@ svg.chart .wb.n.c-good { fill: #17A06A; }
   function swapElig(k, i) {
     var cw = iso(todayMon);
     if (k < cw || (k === cw && (notStarted || i < todayIdx))) return false;
+    if (jokOn(k, i)) return false;
     var dn = done[k] || {};
     return !rowsOn(k, i).some(function (a) { return dn[a.id]; });
   }
@@ -1858,6 +1925,7 @@ svg.chart .wb.n.c-good { fill: #17A06A; }
     var k = iso(d);
     if (k < START || !dayPassed(d)) return false;
     var wk = iso(mondayOf(d)), i = (d.getDay() + 6) % 7;
+    if (jokOn(wk, i)) return false;
     var acts = rowsOn(wk, i).filter(function (a) { return !isBonus(a); });
     if (!acts.length) return false;
     var dn = done[wk] || {};
@@ -1919,20 +1987,20 @@ svg.chart .wb.n.c-good { fill: #17A06A; }
       var bacts = all.filter(function (a) { return isBonus(a); });
       var n = acts.filter(function (a) { return dn[a.id]; }).length;
       var bdone = bacts.filter(function (a) { return dn[a.id]; }).length;
-      var type = acts.length ? 'str' : bacts.length ? 'bon' : 'rst';
+      var type = jokOn(k, i) ? 'jok' : acts.length ? 'str' : bacts.length ? 'bon' : 'rst';
       var pct = acts.length ? Math.round(n / acts.length * 100) : bacts.length ? Math.round(bdone / bacts.length * 100) : 0;
       var pd = planDay(k, i), isToday = iso(d) === iso(now);
       var mainRow = (acts.length ? acts : bacts).filter(function (a) { return a.cat !== 'mob'; })[0];
-      var title = type === 'str' ? (PLANTITLE[pd] || 'Strength') : type === 'bon' ? (BONUSTITLE[pd] && bacts.some(function (a) { return a.cat === 'str'; }) ? BONUSTITLE[pd] : mainRow ? mainRow.name : 'Bonus') : 'Rest day';
+      var title = type === 'jok' ? 'Joker day' : type === 'str' ? (PLANTITLE[pd] || 'Strength') : type === 'bon' ? (BONUSTITLE[pd] && bacts.some(function (a) { return a.cat === 'str'; }) ? BONUSTITLE[pd] : mainRow ? mainRow.name : 'Bonus') : 'Rest day';
       var mins = 0;
       if (acts.length) acts.forEach(function (a) { mins += a.min | 0; });
       else { var mc = bacts.filter(function (a) { return a.cat === 'car'; })[0]; mins = mc ? mc.min | 0 : 0; }
       var am = type === 'str' && typeof actMin === 'function' ? actMin(k, i) : null;
-      var minTxt = type === 'rst' ? 'Recover' : (am != null ? am + ' min done' : mins + ' min');
-      var label = fmtDay.format(d) + ', ' + (acts.length ? n + ' of ' + acts.length + ' done' : bacts.length ? 'bonus day, ' + bdone + ' of ' + bacts.length + ' done' : 'nothing planned');
+      var minTxt = type === 'jok' ? 'Streak safe' : type === 'rst' ? 'Recover' : (am != null ? am + ' min done' : mins + ' min');
+      var label = fmtDay.format(d) + ', ' + (type === 'jok' ? 'joker day, streak safe' : acts.length ? n + ' of ' + acts.length + ' done' : bacts.length ? 'bonus day, ' + bdone + ' of ' + bacts.length + ' done' : 'nothing planned');
       html += '<button type="button" class="daybtn wcard ' + type + (isToday ? ' today' : '') + (pct >= 100 ? ' full' : '') +
         '" data-act="day" data-i="' + i + '" aria-pressed="' + (i === dayIdx) + '" aria-label="' + esc(label) + '">' +
-        '<span class="wct"><b>' + DL[i] + ' ' + d.getDate() + '</b><span>' + (type === 'str' ? 'Strength' : type === 'bon' ? 'Bonus' : 'Rest') + '</span></span>' +
+        '<span class="wct"><b>' + DL[i] + ' ' + d.getDate() + '</b><span>' + (type === 'jok' ? 'Joker' : type === 'str' ? 'Strength' : type === 'bon' ? 'Bonus' : 'Rest') + '</span></span>' +
         '<span class="wcb"><span class="wcn">' + esc(title) + '</span><span class="wcm">' + minTxt + (isToday ? ' · today' : '') + '</span>' +
         '<span class="dbar"><i style="width:' + pct + '%"></i></span></span></button>';
     }
@@ -1951,7 +2019,7 @@ svg.chart .wb.n.c-good { fill: #17A06A; }
   function renderTargets() {
     var s = stats();
     var rows = [
-      { k: 'str', label: 'Strength', v: s.str, t: iso(weekStart) >= THU_FROM ? 4 : TARGETS.str, unit: 'days' },
+      { k: 'str', label: 'Strength', v: s.str, t: iso(weekStart) >= THU_FROM ? strGoal(iso(weekStart)) : Math.min(TARGETS.str, strGoal(iso(weekStart))), unit: 'days' },
       { k: 'car', label: 'Cardio', v: s.car, t: TARGETS.car, unit: 'min' },
       { k: 'mob', label: 'Mobility', v: s.mob, t: TARGETS.mob, unit: 'sessions' }
     ];
@@ -2045,8 +2113,17 @@ svg.chart .wb.n.c-good { fill: #17A06A; }
           (canU ? '' : '<p class="fine" style="margin:6px 0 0">Swaps can only be undone while every swapped day is still ahead of you and nothing is ticked on it. You can still swap the days ahead again.</p>');
       }
     }
+    // Joker control for this day.
+    var jm = jokMonth(k, dayIdx), jl = Math.max(0, JOK_MAX - jokUsed(jm)), MN = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'][+jm.slice(5, 7) - 1];
+    if (jokOn(k, dayIdx)) {
+      h = '<button type="button" class="ghost jokbtn on" data-act="jokundo">Undo joker</button>' + h;
+    } else if (jokElig(k, dayIdx) && !swapOpen) {
+      h = (jl ? '<button type="button" class="ghost jokbtn" data-act="jokuse">' + JOKER + 'Use a joker <span>' + jl + ' of ' + JOK_MAX + ' left in ' + MN + '</span></button>'
+        : '<p class="fine jokno">No jokers left in ' + MN + '. You get ' + JOK_MAX + ' new ones on the 1st.</p>') + h;
+    }
     box.innerHTML = h;
   }
+  var JOKER = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l2.6 5.6 6.1.7-4.5 4.2 1.2 6L12 16.6 6.6 19.5l1.2-6-4.5-4.2 6.1-.7z"/></svg>';
 
   function renderList() {
     var d = addDays(weekStart, dayIdx);
@@ -2059,7 +2136,8 @@ svg.chart .wb.n.c-good { fill: #17A06A; }
     var total = acts.reduce(function (s, a) { return s + (a.min || 0); }, 0);
     var bn = bonusActs.filter(function (a) { return dn[a.id]; }).length;
     var trec = tm[iso(weekStart) + '|' + dayIdx];
-    el.daysub.textContent = acts.length
+    var isJok = jokOn(iso(weekStart), dayIdx);
+    el.daysub.textContent = isJok ? 'Joker day · this session is skipped, streaks and stars are safe' : acts.length
       ? n + ' of ' + acts.length + ' done' + (trec ? ' · ' + hm(trec.m) + ' actual' + (total ? ', ' + total + ' min planned' : '') : total ? ' · about ' + total + ' min' : '')
       : bonusActs.length ? 'Bonus day · optional · ' + bn + ' of ' + bonusActs.length + ' done' + (trec ? ' · ' + hm(trec.m) + ' actual' : '') : 'Rest day';
     renderSwap();
@@ -2068,7 +2146,12 @@ svg.chart .wb.n.c-good { fill: #17A06A; }
     var stretchPart = stretchActs.length ? [{ head: 1, text: 'Posture stretching: shoulders and hips', stretch: 1 }].concat(stretchActs) : [];
     var listItems = acts.length ? acts.concat(plainBonus.length ? [{ head: 1 }] : [], plainBonus, stretchPart)
       : bonusActs.length ? (plainBonus.length ? [{ head: 1, text: 'Bonus day. Optional, but it earns extra credit.' }].concat(plainBonus) : []).concat(stretchPart) : [];
-    if (!listItems.length) {
+    if (isJok) {
+      el.list.innerHTML = '<li class="jokban">' + JOKER + '<div><b>Joker day</b><span>Session skipped. Streaks, perfect week and stars stay safe, and calories follow the rest-day target. Changed your mind? Tick any exercise and the joker goes back to your pool.</span></div></li>' +
+        listItems.filter(function (a) { return !a.head; }).map(function (a) {
+          return '<li class="row jokrow"><button type="button" class="rowbtn" role="checkbox" aria-checked="false" data-act="toggle" data-id="' + esc(a.id) + '"><span class="plate ' + esc(a.cat) + '">' + CHECK + '</span><span class="info"><span class="name">' + esc(a.name) + '</span><span class="detail">' + esc(a.detail || '') + '</span></span></button></li>';
+        }).join('');
+    } else if (!listItems.length) {
       el.list.innerHTML = '<li class="empty">Rest day. Recover, or take an easy walk.</li>';
     } else {
       el.list.innerHTML = listItems.map(function (a) {
@@ -2202,14 +2285,14 @@ svg.chart .wb.n.c-good { fill: #17A06A; }
   }
 
   function weekInfo(k) {
-    var dn = done[k] || {}, tot = 0, dc = 0;
-    plan.forEach(function (a) { if (isBonus(a) || !live(a, k)) return; tot++; if (dn[a.id]) dc++; });
+    var dn = done[k] || {}, tot = 0, dc = 0, jp = jokPd(k);
+    plan.forEach(function (a) { if (isBonus(a) || !live(a, k) || jp[a.day]) return; tot++; if (dn[a.id]) dc++; });
     return { total: tot, done: dc, full: tot > 0 && dc === tot };
   }
 
   function daysComplete(k) {
-    var dn = done[k] || {}, t = [0, 0, 0, 0, 0, 0, 0], c = [0, 0, 0, 0, 0, 0, 0], planned = 0, comp = 0, i;
-    plan.forEach(function (a) { if (isBonus(a) || !live(a, k)) return; t[a.day]++; if (dn[a.id]) c[a.day]++; });
+    var dn = done[k] || {}, t = [0, 0, 0, 0, 0, 0, 0], c = [0, 0, 0, 0, 0, 0, 0], planned = 0, comp = 0, i, jp = jokPd(k);
+    plan.forEach(function (a) { if (isBonus(a) || !live(a, k) || jp[a.day]) return; t[a.day]++; if (dn[a.id]) c[a.day]++; });
     for (i = 0; i < 7; i++) if (t[i] && isTrain(i)) { planned++; if (c[i] === t[i]) comp++; }
     return { planned: planned, comp: comp };
   }
@@ -2231,7 +2314,7 @@ svg.chart .wb.n.c-good { fill: #17A06A; }
       var k = iso(w), dn = done[k] || {};
       for (var d = 0; d < 7; d++) {
         var pd = planDay(k, d);
-        if (!cm[pd] || !isTrain(pd, k)) continue;
+        if (!cm[pd] || !isTrain(pd, k) || jokOn(k, d)) continue;
         var acts = rowsOn(k, d).filter(function (a) { return !isBonus(a); });
         if (!acts.length) continue;
         var dk = iso(addDays(w, d)), all = acts.every(function (a) { return dn[a.id]; });
@@ -3129,7 +3212,7 @@ svg.chart .wb.n.c-good { fill: #17A06A; }
   }
   function curNutri() {
     var key = iso(addDays(todayMon, nutDay));
-    return { T: nutriTargets(isTrain(planDay(iso(todayMon), nutDay), iso(todayMon)), key), key: key, day: nutri.days[key] || { extra: [] } };
+    return { T: nutriTargets(isTrain(planDay(iso(todayMon), nutDay), iso(todayMon)) && !jokOn(iso(todayMon), nutDay), key), key: key, day: nutri.days[key] || { extra: [] } };
   }
   function eatenTot(c) {
     var t = { kcal: 0, p: 0, c: 0, f: 0 };
@@ -3323,13 +3406,13 @@ svg.chart .wb.n.c-good { fill: #17A06A; }
     var laneX = {};
     if (!el['panel-nutrition'].hidden) Array.prototype.forEach.call(el.nutrition.querySelectorAll('.lane'), function (l) { laneX[l.getAttribute('data-slot')] = l.scrollLeft; });
     renderHead(); renderWelcome(); renderGame();
-    var c = curNutri(), T = c.T, ea = eatenTot(c), train = isTrain(planDay(iso(todayMon), nutDay), iso(todayMon));
+    var c = curNutri(), T = c.T, ea = eatenTot(c), train = isTrain(planDay(iso(todayMon), nutDay), iso(todayMon)) && !jokOn(iso(todayMon), nutDay);
     var names = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
     var chips = '<div class="lchips" role="group" aria-label="Day">' + names.map(function (n, i) {
-      return '<button type="button" data-act="nday" data-i="' + i + '" aria-pressed="' + (i === nutDay) + '">' + n + (isTrain(planDay(iso(todayMon), i), iso(todayMon)) ? ' •' : '') + '</button>';
+      return '<button type="button" data-act="nday" data-i="' + i + '" aria-pressed="' + (i === nutDay) + '">' + n + (isTrain(planDay(iso(todayMon), i), iso(todayMon)) && !jokOn(iso(todayMon), i) ? ' •' : '') + '</button>';
     }).join('') + '</div>';
     var html = '<div>' + chips +
-      '<p class="line"><b>' + (train ? 'Lifting day' : 'Rest or cardio day') + '</b>: ' +
+      '<p class="line"><b>' + (train ? 'Lifting day' : jokOn(iso(todayMon), nutDay) ? 'Joker day' : 'Rest or cardio day') + '</b>: ' +
       (train ? T.kcal + ' kcal, 200 more than on rest days. Eat your carbs around the session.' : T.kcal + ' kcal, protein stays high.') + '</p>' +
       bar(ea.kcal, T.kcal, 'Calories') + bar(ea.p, T.p, 'Protein') +
       '<p class="fine">Left today: ' + Math.max(0, T.kcal - ea.kcal) + ' kcal and ' + Math.max(0, T.p - ea.p) + ' g protein.</p><p class="fine">Daily target: ' + T.kcal + ' kcal, ' + T.p + ' g protein, about ' + T.c + ' g carbs and ' + T.f + ' g fat. So far: ' + ea.c + ' g carbs and ' + ea.f + ' g fat.</p></div>';
@@ -3362,6 +3445,7 @@ svg.chart .wb.n.c-good { fill: #17A06A; }
   function trainDay(k, i) {
     var dn = done[k] || {}, planned = 0, base = 0, all = 0, lifts = 0, bn = 0, bmin = 0, bst = 0;
     var pdi = planDay(k, i);
+    if (jokOn(k, i)) return { bn: 0, bmin: 0, bst: 0, planned: 0, base: 0, all: 0, lifts: 0, frac: null, active: false, jok: true };
     plan.forEach(function (a) {
       if (a.day !== pdi || !live(a, k)) return;
       if (!isBonus(a)) planned += a.min || 0;
@@ -3378,9 +3462,9 @@ svg.chart .wb.n.c-good { fill: #17A06A; }
     if (!day) {
       // Only the last 14 days are kept in full. Older days keep a short summary, so old weeks still count.
       var h0 = nutri.hist && nutri.hist[dk0];
-      return h0 && h0.s > 0 ? { score: h0.s, kcal: h0.k, p: h0.p, T: nutriTargets(isTrain(planDay(k, i), k), dk0) } : null;
+      return h0 && h0.s > 0 ? { score: h0.s, kcal: h0.k, p: h0.p, T: nutriTargets(isTrain(planDay(k, i), k) && !jokOn(k, i), dk0) } : null;
     }
-    var T = nutriTargets(isTrain(planDay(k, i), k), dk0), kc = 0, p = 0;
+    var T = nutriTargets(isTrain(planDay(k, i), k) && !jokOn(k, i), dk0), kc = 0, p = 0;
     (day.extra || []).forEach(function (x) { kc += x.kcal; p += x.p; });
     if (kc <= 0) return null;
     var ps = Math.min(1, p / T.p), ks;
@@ -3404,7 +3488,7 @@ svg.chart .wb.n.c-good { fill: #17A06A; }
       bMin += td.bmin; bStretch += td.bst;
       if (i <= lastDay) {
         plannedMin += td.planned; baseMin += td.base;
-        if (rowsOn(k, i).some(function (a) { return a.cat === 'str' && !isBonus(a); })) strTarget++;
+        if (!jokOn(k, i) && rowsOn(k, i).some(function (a) { return a.cat === 'str' && !isBonus(a); })) strTarget++;
       }
       if (td.lifts >= 2) strDays++;
       if (td.base > 0) actDays++;
@@ -3544,7 +3628,7 @@ svg.chart .wb.n.c-good { fill: #17A06A; }
       var c = 2 * Math.PI * r, v = Math.max(0, Math.min(1, val));
       return '<circle class="rg tr ' + cls + '" cx="56" cy="56" r="' + r + '"/><circle class="rg ' + cls + '" cx="56" cy="56" r="' + r + '" stroke-dasharray="' + (c * v).toFixed(1) + ' ' + c.toFixed(1) + '"/>';
     }
-    var sT = ws.k >= THU_FROM ? 4 : 3, rT = Math.round(ws.trainFrac * 100), rN = ws.nutriOn ? Math.round(ws.nutr * 100) : 0;
+    var sT = strGoal(ws.k), rT = Math.round(ws.trainFrac * 100), rN = ws.nutriOn ? Math.round(ws.nutr * 100) : 0;
     html += '<div class="rings"><svg width="112" height="112" viewBox="0 0 112 112" role="img" aria-label="Training ' + rT + ' percent, strength ' + Math.min(sT, ws.strDays) + ' of ' + sT + ' days, nutrition ' + rN + ' percent"><g transform="rotate(-90 56 56)">' +
       ring(50, ws.trainFrac, 'rt') + ring(38, Math.min(1, ws.strDays / sT), 'rs') + ring(26, ws.nutriOn ? ws.nutr : 0, 'rn') + '</g></svg>' +
       '<div class="rlegend"><div style="--d:var(--acc)"><span>TRAINING</span><b>' + rT + '%</b></div><div style="--d:var(--acc2)"><span>STRENGTH</span><b>' + Math.min(sT, ws.strDays) + ' of ' + sT + ' days</b></div><div style="--d:var(--grn)"><span>NUTRITION</span><b>' + rN + '%</b></div></div></div>';
@@ -3571,7 +3655,7 @@ svg.chart .wb.n.c-good { fill: #17A06A; }
     }
     html += '<div><h3>Your week</h3>' +
       ratingCard(notStarted ? 'First week' : 'This week, on pace so far', ws, 'Rated against the days up to today, so Monday morning does not start at one star.', notStarted ? 'Starts Monday 9 November. Your first rating appears once you have trained a day.' : '') +
-      '<p class="fine">Stars: under 25% is 1, then 45%, 65% and 85% for 2, 3 and 4 stars. Training counts 60% (planned minutes done, plus ' + (ws.k >= THU_FROM ? 4 : 3) + ' strength days), nutrition 40% (calories near target and protein hit, days not logged count as 0).</p></div>';
+      '<p class="fine">Stars: under 25% is 1, then 45%, 65% and 85% for 2, 3 and 4 stars. Training counts 60% (planned minutes done, plus ' + strGoal(ws.k) + ' strength days' + (strGoal(ws.k) < (ws.k >= THU_FROM ? 4 : 3) ? ', joker days excluded' : '') + '), nutrition 40% (calories near target and protein hit, days not logged count as 0).</p></div>';
 
     // chart
     html += '<div><h3>Strength and nutrition by day</h3>' + weekChart(chartWs) +
@@ -3613,7 +3697,7 @@ svg.chart .wb.n.c-good { fill: #17A06A; }
   var cloudFailed = false;
   var saving = false, dirty = false, saveTimer = null;
 
-  function serialize() { return { v: 10, pv: 12, swp: swp, cel: cel, tm: tm, tma: tmA, seen: seen, startKg: startKg, startFat: startFat, plan: plan, done: done, logs: logs, recs: recs, level: level, body: bodyKg, weigh: weigh, goalKg: goalKg, goalMonths: goalMonths, nutri: nutriSerialize() }; }
+  function serialize() { return { v: 10, pv: 13, jok: jok, swp: swp, cel: cel, tm: tm, tma: tmA, seen: seen, startKg: startKg, startFat: startFat, plan: plan, done: done, logs: logs, recs: recs, level: level, body: bodyKg, weigh: weigh, goalKg: goalKg, goalMonths: goalMonths, nutri: nutriSerialize() }; }
   function apply(data) {
     coreCache = null;
     if (!data || typeof data !== 'object') return;
@@ -3625,6 +3709,8 @@ svg.chart .wb.n.c-good { fill: #17A06A; }
     else if (bw >= 30 && bw <= 250) bodyKg = bw;
     if (data.recs && typeof data.recs === 'object') recs = data.recs;
     cel = data.cel && typeof data.cel === 'object' ? data.cel : {};
+    jok = {};
+    if (data.jok && typeof data.jok === 'object') Object.keys(data.jok).forEach(function (key) { if (/^\d{4}-\d{2}-\d{2}\|[0-6]$/.test(key) && data.jok[key]) jok[key] = 1; });
     tm = {}; tmA = null;
     if (data.tm && typeof data.tm === 'object') Object.keys(data.tm).forEach(function (key) {
       var r = data.tm[key];
@@ -3695,6 +3781,12 @@ svg.chart .wb.n.c-good { fill: #17A06A; }
         var have9 = {}, new9 = { 'Dumbbell squeeze press': 1, 'Dumbbell floor press': 1, 'Dumbbell floor fly': 1, 'Floor pullover': 1 };
         plan.forEach(function (a) { have9[a.id] = 1; });
         plan = plan.concat(defaultPlan().filter(function (a) { return new9[a.name] && !have9[a.id]; }));
+      }
+      // Plan version 13 added preacher and incline curls on Monday and Thursday from the week of 23 November.
+      if (!legacy && (data.pv | 0) < 13) {
+        var have13 = {};
+        plan.forEach(function (a) { have13[a.id] = 1; });
+        defaultPlan().filter(function (a) { return CURLS[a.name] && !have13[a.id]; }).forEach(function (r) { placeRow(plan, r); });
       }
       // Plan version 12 added the cross-body triceps extension on Friday from the week of 23 November.
       if (!legacy && (data.pv | 0) < 12) {
@@ -4203,6 +4295,7 @@ svg.chart .wb.n.c-good { fill: #17A06A; }
   /* ---------- actions ---------- */
   function toggle(id) {
     var k = iso(weekStart);
+    if (jokOn(k, dayIdx)) { delete jok[k + '|' + dayIdx]; toast('Joker back in your pool. Good on ya for training anyway.'); }
     done[k] = done[k] || {};
     var a = plan.filter(function (x) { return x.id === id; })[0];
     var was = !!done[k][id];
@@ -4239,6 +4332,14 @@ svg.chart .wb.n.c-good { fill: #17A06A; }
     var act = t.getAttribute('data-act');
     if (act === 'export') exportData();
     else if (act === 'toggle') toggle(t.getAttribute('data-id'));
+    else if (act === 'jokuse') {
+      var jk = iso(weekStart);
+      if (jokElig(jk, dayIdx) && jokUsed(jokMonth(jk, dayIdx)) < JOK_MAX) {
+        jok[jk + '|' + dayIdx] = 1; save(); render();
+        toast('Joker used. ' + Math.max(0, JOK_MAX - jokUsed(jokMonth(jk, dayIdx))) + ' left this month. Rest up.');
+      }
+    }
+    else if (act === 'jokundo') { delete jok[iso(weekStart) + '|' + dayIdx]; save(); render(); toast('Joker back in your pool.'); }
     else if (act === 'tmstart') tmStart();
     else if (act === 'tmfinish') tmFinish();
     else if (act === 'tmdiscard') { tmA = null; save(); render(); }
@@ -4693,7 +4794,7 @@ svg.chart .wb.n.c-good { fill: #17A06A; }
       if (d.getHours() < 17 || k < START || tab !== 'welcome' || tmA) return false;
       var i = (d.getDay() + 6) % 7, wk = iso(mondayOf(d));
       var acts = rowsOn(wk, i).filter(function (a) { return !isBonus(a); }), pdn = planDay(wk, i);
-      if (!acts.length || !coreMap()[pdn] || !isTrain(pdn, wk)) return false;
+      if (!acts.length || !coreMap()[pdn] || !isTrain(pdn, wk) || jokOn(wk, i)) return false;
       var dn = done[wk] || {};
       if (acts.some(function (a) { return dn[a.id]; })) return false;
       if (localStorage.getItem('jym:nd') === k) return false;
