@@ -872,7 +872,8 @@ svg.chart .wb.n.c-good { fill: #17A06A; }
 #nudge button.go { background: var(--acc); border-color: var(--acc); color: var(--onacc); font-size: 16px; }
 @media (prefers-reduced-motion: no-preference) { #nudge .nc { animation: cardin .45s cubic-bezier(.2, 1.4, .4, 1) both; } }
 .dayactions { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 8px; margin: 0 0 10px; }
-.swapbox { flex: 1 1 auto; min-width: 0; margin: 0; }
+.swapbox { flex: 1 1 auto; min-width: 0; margin: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
+.swapbox > p, .swapbox > .lchips { margin: 0 !important; }
 .swapbox:empty { display: none; }
 .swapbox .ghost[disabled] { opacity: .5; }
 .timer { margin: 0 0 12px; }
