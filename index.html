@@ -1529,6 +1529,51 @@ svg.chart .wb.n.c-good { fill: #17A06A; }
       tip: "If your lower back lifts, make the movement smaller. Slow and flat beats big.",
       q: "dead bug exercise"
     },
+    "Knees-to-chest hug": {
+      steps: [
+        "Lie on your back and pull both knees in toward your chest, hands clasped over the shins or behind the knees.",
+        "Let your lower back sink flat into the floor and your tailbone curl up slightly.",
+        "Breathe slowly into your belly and hold for 1 minute. Rock gently side to side if it feels good."
+      ],
+      tip: "Relax the shoulders and neck on the floor. The stretch is in the lower back, so do not pull hard.",
+      q: "knees to chest stretch lower back"
+    },
+    "Child's pose, arms long": {
+      steps: [
+        "Kneel, big toes together, and sit your hips back toward your heels.",
+        "Walk your hands far forward and rest your forehead on the mat, arms long.",
+        "Keep reaching through the fingertips while the hips sink back. Breathe into your back and hold 1 minute."
+      ],
+      tip: "Open the knees a little if your belly or hips get in the way. Pad the knees with a towel.",
+      q: "child's pose arms extended"
+    },
+    "Supine pelvic tilt hold": {
+      steps: [
+        "Lie on your back with your knees bent and feet flat, hands resting on your belly or hips.",
+        "Gently tilt the pelvis back so your lower back presses flat into the floor. Ribs stay down.",
+        "Hold that flat back while you breathe calmly for 1 minute."
+      ],
+      tip: "Use the deep belly muscles, not the glutes or the legs. Small movement, steady breathing.",
+      q: "supine posterior pelvic tilt hold"
+    },
+    "Reclined kneeling quad stretch": {
+      steps: [
+        "Kneel with your shins on the mat and sit back on or between your heels, hands holding the feet.",
+        "Lean back slowly onto your hands, then onto your forearms, and only lie flat if your knees allow it.",
+        "Tuck the pelvis slightly so the lower back stays long, and hold 1 minute. Come up the same way."
+      ],
+      tip: "This is a strong stretch for the front of the thighs and hips. Stop at the first level where you feel it, never pain in the knees.",
+      q: "reclined hero pose quad stretch"
+    },
+    "Kneeling neck stretch": {
+      steps: [
+        "Kneel, sit back toward your heels and lower your forehead to the mat in front of the knees.",
+        "Clasp your hands behind your head and let the elbows hang down.",
+        "Gently tuck the chin and let the weight of your arms stretch the back of the neck and upper back. Hold 1 minute."
+      ],
+      tip: "Only the arms' weight, no pulling. Lift slowly to come out. Good against a forward head posture from phone and desk time.",
+      q: "kneeling neck stretch hands behind head"
+    },
     "Frog pose": {
       steps: [
         "Start on hands and knees on a soft mat. Slide your knees wide apart with the inner edges of your feet on the floor and your ankles in line with your knees.",
@@ -1620,6 +1665,18 @@ svg.chart .wb.n.c-good { fill: #17A06A; }
     list.splice(at < 0 ? list.length : at, 0, r);
   }
   var CURLS = { 'Dumbbell preacher curl': 1, 'Incline dumbbell curl': 1 };
+  var STRETCH_FROM = '2026-11-23';
+  var OLDSTRETCH = { 'Doorway pec stretch': 1, 'Half-kneeling hip flexor stretch': 1, 'Wall angels': 1, 'Thoracic extension on a bench': 1, '90/90 hip switches': 1,
+    'Glute bridge with pelvic tilt': 1, 'Prone Y raise': 1, 'Couch stretch': 1, 'Dead bug': 1, 'Frog pose': 1, 'Pigeon pose': 1,
+    'Glute bridge': 1, 'Kneeling hip flexor stretch': 1, 'Slow leg raises': 1, 'Knee hug': 1 };
+  var STRETCHES = [
+    ['Knees-to-chest hug', 'Hold 1 min, lower back flat', 1],
+    ['Child\'s pose, arms long', 'Hold 1 min, reach forward', 1],
+    ['Supine pelvic tilt hold', 'Hold 1 min, back pressed flat', 1],
+    ['Glute bridge', '2 × 10, squeeze at the top for 2 s', 2],
+    ['Reclined kneeling quad stretch', 'Hold 1 min, only as far back as the knees allow', 1],
+    ['Kneeling neck stretch', 'Hold 1 min, hands behind the head', 1]
+  ];
   function defaultPlan() {
     var P = [];
     function add(day, cat, name, detail, min, bonus) {
@@ -1734,6 +1791,11 @@ svg.chart .wb.n.c-good { fill: #17A06A; }
       add(d, 'str', 'Incline dumbbell curl', '3 × 10, slow on the way down', 5);
     });
     P.splice(c0).forEach(function (r) { r.from = THU_FROM; placeRow(P, r); });
+    // From the week of 23 November one posture stretch routine replaces all earlier stretches, on every day of the week.
+    P.forEach(function (a) { if (OLDSTRETCH[a.name] && a.bonus && a.cat === 'mob' && !a.from && !a.to) a.to = STRETCH_FROM; });
+    var s0 = P.length;
+    for (var sd = 0; sd < 7; sd++) STRETCHES.forEach(function (x) { add(sd, 'mob', x[0], x[1], x[2], 1); });
+    P.slice(s0).forEach(function (a) { a.from = STRETCH_FROM; });
     // Pigeon pose was removed. Its rows are still created above so every later id stays the same, then dropped here.
     return P.filter(function (a) { return a.name !== 'Pigeon pose'; });
   }
@@ -1992,10 +2054,10 @@ svg.chart .wb.n.c-good { fill: #17A06A; }
       var pct = acts.length ? Math.round(n / acts.length * 100) : bacts.length ? Math.round(bdone / bacts.length * 100) : 0;
       var pd = planDay(k, i), isToday = iso(d) === iso(now);
       var mainRow = (acts.length ? acts : bacts).filter(function (a) { return a.cat !== 'mob'; })[0];
-      var title = type === 'jok' ? 'Joker day' : type === 'str' ? (PLANTITLE[pd] || 'Strength') : type === 'bon' ? (BONUSTITLE[pd] && bacts.some(function (a) { return a.cat === 'str'; }) ? BONUSTITLE[pd] : mainRow ? mainRow.name : 'Bonus') : 'Rest day';
+      var title = type === 'jok' ? 'Joker day' : type === 'str' ? (PLANTITLE[pd] || 'Strength') : type === 'bon' ? (BONUSTITLE[pd] && bacts.some(function (a) { return a.cat === 'str'; }) ? BONUSTITLE[pd] : mainRow ? mainRow.name : 'Stretching') : 'Rest day';
       var mins = 0;
       if (acts.length) acts.forEach(function (a) { mins += a.min | 0; });
-      else { var mc = bacts.filter(function (a) { return a.cat === 'car'; })[0]; mins = mc ? mc.min | 0 : 0; }
+      else { var mc = bacts.filter(function (a) { return a.cat === 'car'; })[0]; if (mc) mins = mc.min | 0; else bacts.forEach(function (a) { mins += a.min | 0; }); }
       var am = type === 'str' && typeof actMin === 'function' ? actMin(k, i) : null;
       var minTxt = type === 'jok' ? 'Streak safe' : type === 'rst' ? 'Recover' : (am != null ? am + ' min done' : mins + ' min');
       var label = fmtDay.format(d) + ', ' + (type === 'jok' ? 'joker day, streak safe' : acts.length ? n + ' of ' + acts.length + ' done' : bacts.length ? 'bonus day, ' + bdone + ' of ' + bacts.length + ' done' : 'nothing planned');
@@ -2144,7 +2206,7 @@ svg.chart .wb.n.c-good { fill: #17A06A; }
     renderSwap();
     var stretchActs = bonusActs.filter(isStretch);
     var plainBonus = bonusActs.filter(function (a) { return !isStretch(a); });
-    var stretchPart = stretchActs.length ? [{ head: 1, text: 'Posture stretching: shoulders and hips', stretch: 1 }].concat(stretchActs) : [];
+    var stretchPart = stretchActs.length ? [{ head: 1, text: (iso(weekStart) >= STRETCH_FROM ? 'Posture stretching: back, hips and neck · about 7 min' : 'Posture stretching: shoulders and hips'), stretch: 1 }].concat(stretchActs) : [];
     var listItems = acts.length ? acts.concat(plainBonus.length ? [{ head: 1 }] : [], plainBonus, stretchPart)
       : bonusActs.length ? (plainBonus.length ? [{ head: 1, text: 'Bonus day. Optional, but it earns extra credit.' }].concat(plainBonus) : []).concat(stretchPart) : [];
     if (isJok) {
@@ -3699,7 +3761,7 @@ svg.chart .wb.n.c-good { fill: #17A06A; }
   var cloudFailed = false;
   var saving = false, dirty = false, saveTimer = null;
 
-  function serialize() { return { v: 10, pv: 13, jok: jok, swp: swp, cel: cel, tm: tm, tma: tmA, seen: seen, startKg: startKg, startFat: startFat, plan: plan, done: done, logs: logs, recs: recs, level: level, body: bodyKg, weigh: weigh, goalKg: goalKg, goalMonths: goalMonths, nutri: nutriSerialize() }; }
+  function serialize() { return { v: 10, pv: 14, jok: jok, swp: swp, cel: cel, tm: tm, tma: tmA, seen: seen, startKg: startKg, startFat: startFat, plan: plan, done: done, logs: logs, recs: recs, level: level, body: bodyKg, weigh: weigh, goalKg: goalKg, goalMonths: goalMonths, nutri: nutriSerialize() }; }
   function apply(data) {
     coreCache = null;
     if (!data || typeof data !== 'object') return;
@@ -3799,6 +3861,13 @@ svg.chart .wb.n.c-good { fill: #17A06A; }
           plan.forEach(function (a, ix) { if (at < 0 && a.day === r.day && a.cat === 'car' && !a.bonus) at = ix; });
           plan.splice(at < 0 ? plan.length : at, 0, r);
         });
+      }
+      // Plan version 14 replaced every stretch with one routine on all seven days from the week of 23 November.
+      if (!legacy && (data.pv | 0) < 14) {
+        plan.forEach(function (a) { if (OLDSTRETCH[a.name] && a.bonus && a.cat === 'mob' && !a.from && !a.to) a.to = STRETCH_FROM; });
+        var have14 = {};
+        plan.forEach(function (a) { have14[a.id] = 1; });
+        plan = plan.concat(defaultPlan().filter(function (a) { return a.from === STRETCH_FROM && a.cat === 'mob' && a.bonus && !have14[a.id]; }));
       }
       // Plan version 11 made Thursday a lifting day from the week of 23 November. The old bonus rows end there,
       // the new full-day rows start there, so last week's stars, streaks and badges stay exactly as they were.
