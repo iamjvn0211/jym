@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#F6F7F9" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0B0F1A" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#F1F2F7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0D1020" media="(prefers-color-scheme: dark)">
 <meta name="color-scheme" content="light dark">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -889,6 +889,29 @@ svg.chart .wb.n.c-good { fill: #17A06A; }
 .tmc .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: var(--acc); margin-right: 6px; }
 @media (prefers-reduced-motion: no-preference) { .tmc.run .dot { animation: tmpulse 1.4s ease-in-out infinite; } }
 @keyframes tmpulse { 50% { opacity: .25; } }
+
+/* ===== BRAND: INK & WATERMELON. Ink and fog set the mood, watermelon is the accent. ===== */
+:root { --bg: #F1F2F7; --surface: #FFFFFF; --ink: #13172A; --muted: #686E85; --line: #E3E5EE;
+  --brand: #151A33; --onbrand: #FFFFFF; --wm: #FF3D6E;
+  --acc: #EE2A62; --acc2: #4655C8; --acc-dk: #D81B55; --acc2-dk: #3442A8; --onacc: #FFFFFF;
+  --str: #EE2A62; --car: #4655C8; --mob: #0B7A4F; --gold: #EE2A62;
+  --tint: #FFEAF0; --tint-line: #FFC7D5; --acc-a: rgba(238, 42, 98, .14); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg: #0D1020; --surface: #181C33; --ink: #F2F3F8; --muted: #A6ABC2; --line: #2A2F4A;
+  --brand: #2C3360; --onbrand: #FFFFFF; --wm: #FF5C85;
+  --acc: #FF5C85; --acc2: #8C9BFF; --acc-dk: #FF5C85; --onacc: #13172A; --str: #FF5C85; --car: #8C9BFF; --mob: #34D399; --gold: #FF5C85;
+  --tint: #3A1E2C; --tint-line: #6A2D45; --acc-a: rgba(255, 92, 133, .18); color-scheme: dark; } }
+:root[data-theme="dark"] { --bg: #0D1020; --surface: #181C33; --ink: #F2F3F8; --muted: #A6ABC2; --line: #2A2F4A;
+  --brand: #2C3360; --onbrand: #FFFFFF; --wm: #FF5C85;
+  --acc: #FF5C85; --acc2: #8C9BFF; --acc-dk: #FF5C85; --onacc: #13172A; --str: #FF5C85; --car: #8C9BFF; --mob: #34D399; --gold: #FF5C85;
+  --tint: #3A1E2C; --tint-line: #6A2D45; --acc-a: rgba(255, 92, 133, .18); color-scheme: dark; }
+.wcard.str .wct { background: var(--brand); color: var(--onbrand); }
+.wcard.str.full .wct, .wcard.str .wct b { color: var(--onbrand); }
+.daybtn.wcard[aria-pressed="true"] { border-color: var(--wm); box-shadow: 0 6px 16px var(--acc-a); }
+.wcard .dbar i, .daybtn.wcard[aria-pressed="true"] .dbar i { background: var(--wm); }
+.mile.m-blue { background: var(--acc-a); color: var(--acc-dk); }
+.lhero { background: linear-gradient(135deg, var(--brand), #3A2350); }
+.fl-supp { --c: #4655C8; --d: #3442A8; }
+.flegend .lp { background: linear-gradient(90deg, #D9432E, #B26F00, #0F8A5A, #6B4DF0, #4655C8, #C2257A); }
 </style>
 </head>
 <body>
@@ -4011,7 +4034,7 @@ svg.chart .wb.n.c-good { fill: #17A06A; }
   function confetti(n) {
     try {
       if (!fxOn()) return;
-      var l = fxLayer(), cols = ['#2457F5', '#FF6B57', '#F5B301', '#2BB673', '#8B5CF6', '#FFFFFF'];
+      var l = fxLayer(), cols = ['#FF3D6E', '#151A33', '#F5B301', '#2BB673', '#8B5CF6', '#FFFFFF'];
       if (l.childElementCount > 120) return;
       for (var i = 0; i < n; i++) {
         var p = document.createElement('i');
@@ -4041,7 +4064,7 @@ svg.chart .wb.n.c-good { fill: #17A06A; }
         s.style.setProperty('--dx', Math.round(Math.cos(a) * d) + 'px');
         s.style.setProperty('--dy', Math.round(Math.sin(a) * d) + 'px');
         if (i % 3 === 1) s.style.background = '#FF6B57';
-        if (i % 3 === 2) s.style.background = '#2457F5';
+        if (i % 3 === 2) s.style.background = '#FF3D6E';
         l.appendChild(s);
         fxDrop(s, 900);
       }
